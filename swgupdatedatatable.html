@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesys Cloud Update QueueLimit Data Table</title>
+</head>
+<body>
+    <h1>Genesys Cloud Update QueueLimit Data Table</h1>
+
+    <button onclick="postDataTableRow()">POST Data Table Row</button>
+    <button onclick="getDataTableRows()">GET Data Table Rows</button>
+
+    <script>
+        // Genesys Cloud API credentials
+        const clientId = 'ea0aee10-8fad-4911-b973-ea344951e06b';
+        const clientSecret = 'kudgnl94w_iH3XKWKw97zYe7slTbvB4q13dMsUU_ClM';
+        const authorizationUrl = 'https://login.mypurecloud.com/oauth/token';
+        const apiUrl = 'https://api.mypurecloud.com';
+
+        // Function to authenticate and get access token
+        async function authenticate() {
+            const authData = {
+                grant_type: 'client_credentials',
+                client_id: clientId,
+                client_secret: clientSecret
+            };
+
+            const response = await fetch(authorizationUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(authData)
+            });
+
+            const data = await response.json();
+            return data.access_token;
+        }
+
+        // Function to post a row to the Data Table
+        async function postDataTableRow() {
+            const accessToken = await authenticate();
+
+            const tableId = 'e93240c0-109a-43e9-9ee4-c0c70fa682ba';
+            const endpoint = `${apiUrl}/api/v2/data-tables/${tableId}/rows`;
+
+            const data = {
+                column1: 'value1',
+                column2: 'value2'
+                // Add more columns as needed
+            };
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                console.log('Row added successfully');
+            } else {
+                console.error('Failed to add row');
+            }
+        }
+
+        // Function to get rows from the Data Table
+        async function getDataTableRows() {
+            const accessToken = await authenticate();
+
+            const tableId = 'your_data_table_id';
+            const endpoint = `${apiUrl}/api/v2/data-tables/${tableId}/rows`;
+
+            const response = await fetch(endpoint, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Data Table Rows:', data);
+            } else {
+                console.error('Failed to fetch Data Table rows');
+            }
+        }
+    </script>
+</body>
+</html>
