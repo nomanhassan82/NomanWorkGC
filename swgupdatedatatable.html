@@ -13,6 +13,15 @@
 
     <script>
         // Genesys Cloud API credentials
+        const client = platformClient.ApiClient.instance;
+client.loginClientCredentialsGrant(clientId,clientSecret)
+.then(()=> {
+  // Do authenticated things
+})
+.catch((err) => {
+ // Handle failure response
+ console.log(err);
+});
         const clientId = 'ea0aee10-8fad-4911-b973-ea344951e06b';
         const clientSecret = 'kudgnl94w_iH3XKWKw97zYe7slTbvB4q13dMsUU_ClM';
         const authorizationUrl = 'https://login.cac1.pure.cloud/oauth/token';
