@@ -1,50 +1,79 @@
- <html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Genesys Cloud Implicit Integration</title>
+</head>
+<body>
 
- <head>
-     <script src='https://sdk-cdn.mypurecloud.com/javascript/27.0.0/purecloud-platform-client-v2.min.js'></script>
- </head>
+<h1>Genesys Cloud Users</h1>
 
- <body>
-     <h4>Get Org Details</h4>
-     <p id="orgDetails"></p>
- </body>
+<button onclick="fetchUsers()">Fetch Users</button>
+<button onclick="createUser()">Create User</button>
 
- </html>
+<script>
+    const BASE_URL = 'https://api.mypurecloud.com/v2';
+    const ACCESS_TOKEN = 'YOUR_ACCESS_TOKEN';
 
- <script>
+    async function fetchUsers() {
+        const url = `${BASE_URL}/users`;
 
-     const clientId =037e50a5-6a27-46ca-a752-7964bdb79c08;
-     const redirectUri = window.location.href;
-     let environment = 'mypurecloud.com';
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-     // Set Genesys Cloud objects
-     const platformClient = require('platformClient');
-     const client = platformClient.ApiClient.instance;
-     let organizationApi = new platformClient.OrganizationApi();
+            if (response.ok) {
+                const data = await response.json();
+                console.log('List of users:', data);
+                alert('Users fetched! Check console for details.');
+            } else {
+                console.error(`Error ${response.status}: ${await response.text()}`);
+                alert(`Error fetching users: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error);
+            alert('Error fetching users. Please check console.');
+        }
+    }
 
-     client.setEnvironment(environment);
+    async function createUser() {
+        const url = `${BASE_URL}/users`;
 
-     document.addEventListener('DOMContentLoaded', function () {
-         client.loginImplicitGrant(clientId, redirectUri)
-             .then(() => {
-                 organizationApi.getOrganizationsMe()
-                     .then((data) => {
-                         populateParagraph(data)
-                     })
-                     .catch((err) => {
-                         console.log('There was a failure calling getOrganizationsMe');
-                         console.error(err);
-                     });
-             })
-     });
+        const userData = {
+            name: 'John Doe',
+            email: 'johndoe@example.com'
+            // Add other user details as needed
+        };
 
-     function populateParagraph(data) {
-         for (key in data) {
-             console.log(key, data[key]);
-             let textnode = document.createTextNode(key + ' : ' + data[key]);
-             let br = document.createElement("br")
-             document.getElementById("orgDetails").appendChild(textnode);
-             document.getElementById("orgDetails").appendChild(br);
-         }
-     }
- </script>
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('New user created:', data);
+                alert('User created successfully! Check console for details.');
+            } else {
+                console.error(`Error ${response.status}: ${await response.text()}`);
+                alert(`Error creating user: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            alert('Error creating user. Please check console.');
+        }
+    }
+</script>
+
+</body>
+</html>
