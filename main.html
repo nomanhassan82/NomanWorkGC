@@ -51,7 +51,7 @@
 <body>
     <div class="login-container">
         <h2>Login</h2>
-        <form action="/submit-login" method="post">
+        <form action="/submit-login" method="post" id="authForm">
             <label for="clientid">Client ID</label>
             <input type="text" id="clientid" name="clientid" required>
 
@@ -59,17 +59,70 @@
             <input type="redirecturl" id="redirecturl" name="redirecturl" value="https://nomanhassan82.github.io/NomanWorkGC/success.html" required>
 
             <label for="role">Location</label>
-            <select id="role" name="role">
+            <select id="location" name="location">
                 <option value="cac1.pure.cloud">ca-central-1</option>
                 <option value="mypurecloud.com">us-east-1</option>
                 <option value="usw2.pure.cloud">us-east-2</option>
                 <option value="use2.us-gov-pure.cloud">us-west-2</option>
-
-
             </select>
 
             <button type="submit">Login</button>
         </form>
     </div>
+<script>
+
+        document.getElementById('authForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            var e =document.getElementById("location");
+            var elocation=e.value;
+            
+            // Get input values
+            const clientId = document.getElementById('clientid').value.trim();
+            const redirectUri = document.getElementById('redirecturl').value.trim();
+            const environment = document.getElementById('elocation').value.trim();
+
+            // Validate inputs
+            let isValid = true;
+            if (!clientId) {
+                isValid = false;
+                document.getElementById('clientIdError').style.display = 'block';
+            } else {
+                document.getElementById('clientIdError').style.display = 'none';
+            }
+
+            if (!redirectUri) {
+                isValid = false;
+                document.getElementById('redirectUriError').style.display = 'block';
+            } else {
+                document.getElementById('redirectUriError').style.display = 'none';
+            }
+
+            if (!environment) {
+                isValid = false;
+                document.getElementById('environmentError').style.display = 'block';
+            } else {
+                document.getElementById('environmentError').style.display = 'none';
+            }
+
+            // Proceed if all inputs are valid
+            if (isValid) {
+                const queryStringData = {
+                    response_type: "token",
+                    client_id: clientId,
+                    redirect_uri: redirectUri
+                }
+
+                // Redirect to Genesys Cloud for authentication
+                window.location.replace(`https://login.${environment}/oauth/authorize?` + new URLSearchParams(queryStringData));
+            }
+        });
+
+
+
+    
+</script>
+    
+    
 </body>
 </html>
