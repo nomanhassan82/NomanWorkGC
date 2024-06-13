@@ -46,6 +46,14 @@
         .login-container button:hover {
             background-color: #45a049;
         }
+                /* Styles for error messages */
+        .error-message {
+            color: red;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
@@ -54,13 +62,14 @@
         <form action="/submit-login" method="post" id="authForm">
             <label for="clientid">Client ID</label>
             <input type="text" id="clientid" name="clientid" required>
-
+            <div class="error-message" id="clientIdError">Please enter a valid Client ID.</div>
             <label for="redirecturl">Redirect URL:</label>
             <input type="text" id="redirecturl" name="redirecturl" value="https://nomanhassan82.github.io/NomanWorkGC/success.html" required>
+            <div class="error-message" id="redirectUriError">Please enter a valid Redirect URL.</div>
             
             <label for="location">Location</label>
             <input type="text" id="location" name="location" value="cac1.pure.cloud" required>
-
+            <div class="error-message" id="environmentError">Please enter a valid Genesys Cloud Environment.</div>
             
            <!-- <label for="role">Location</label>            
             <select id="location" name="location">
