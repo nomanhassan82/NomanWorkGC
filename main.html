@@ -1,73 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f2;
+        }
+        .login-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+        .login-container h2 {
+            margin-bottom: 20px;
+        }
+        .login-container label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .login-container input, .login-container select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .login-container button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form action="/submit-login" method="post">
+            <label for="clientid">Client ID</label>
+            <input type="text" id="clientid" name="clientid" required>
 
-    <div class="container">
-        <h3>Tykans Genesys Cloud Configuration Utility</h3>
-        <form id="authForm">
-            <label for="clientId">Client ID:</label>
-            <input type="text" id="clientId" placeholder="Enter your client ID" value="">
+            <label for="redirecturl">Redirect URL:</label>
+            <input type="redirecturl" id="redirecturl" name="redirecturl" required>
 
-            <div class="error-message" id="clientIdError">Please enter a valid Client ID.</div>
+            <label for="role">Location</label>
+            <select id="role" name="role">
+                <option value="cac1.pure.cloud">ca-central-1</option>
+                <option value="mypurecloud.com">us-east-1</option>
+                <option value="usw2.pure.cloud">us-east-2</option>
+                <option value="use2.us-gov-pure.cloud">us-west-2</option>
 
-            <label for="redirectUri">Redirect URI:</label>
-            <input type="text" id="redirectUri" placeholder="Enter your redirect URI" value="https://razarehman990.github.io/TykansGCXUtility/auth.html">
 
-            <div class="error-message" id="redirectUriError">Please enter a valid Redirect URI.</div>
+            </select>
 
-            <label for="environment">Genesys Cloud Environment:</label>
-            <input type="text" id="environment" placeholder="Enter Genesys Cloud environment" value="cac1.pure.cloud">
-
-            <div class="error-message" id="environmentError">Please enter a valid Genesys Cloud Environment.</div>
-
-            <button type="submit">Authenticate</button>
+            <button type="submit">Login</button>
         </form>
     </div>
-
-    <script>
-        document.getElementById('authForm').addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent default form submission
-
-            // Get input values
-            const clientId = document.getElementById('clientId').value.trim();
-            const redirectUri = document.getElementById('redirectUri').value.trim();
-            const environment = document.getElementById('environment').value.trim();
-
-            // Validate inputs
-            let isValid = true;
-            if (!clientId) {
-                isValid = false;
-                document.getElementById('clientIdError').style.display = 'block';
-            } else {
-                document.getElementById('clientIdError').style.display = 'none';
-            }
-
-            if (!redirectUri) {
-                isValid = false;
-                document.getElementById('redirectUriError').style.display = 'block';
-            } else {
-                document.getElementById('redirectUriError').style.display = 'none';
-            }
-
-            if (!environment) {
-                isValid = false;
-                document.getElementById('environmentError').style.display = 'block';
-            } else {
-                document.getElementById('environmentError').style.display = 'none';
-            }
-
-            // Proceed if all inputs are valid
-            if (isValid) {
-                const queryStringData = {
-                    response_type: "token",
-                    client_id: clientId,
-                    redirect_uri: redirectUri
-                }
-
-                // Redirect to Genesys Cloud for authentication
-                window.location.replace(`https://login.${environment}/oauth/authorize?` + new URLSearchParams(queryStringData));
-            }
-        });
-    </script>
-
-
-</body></html>
+</body>
+</html>
