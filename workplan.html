@@ -153,8 +153,8 @@ function parseCSV(file) {
                     shiftStartVariances: shiftStartVariances,
                     minimumWorkingDaysPerWeek: parseInt(values[27] ? values[27].trim() : '0'),
                     maximumDays: parseInt(values[28] ? values[28].trim() : '0'),
-                    valid: values[values.length - 1] ? values[values.length - 1].trim().toUpperCase() === 'TRUE' : false // Include valid field in data
-                    //shifts: shifts
+                    valid: values[values.length - 1] ? values[values.length - 1].trim().toUpperCase() === 'TRUE' : false, // Include valid field in data
+                    shifts: shifts
                 }
             };
         });
