@@ -119,6 +119,17 @@ function parseCSV(file) {
                 console.error(`Error parsing shiftStartVariances for row: ${row}`, e);
                 shiftStartVariances = { values: [] }; // Default to an empty array if parsing fails
             }
+            let shifts;
+            try {
+                if (values[30] !== undefined && values[26] !== null) {
+                    shifts = JSON.parse(values[30].replace(/""/g, '"').trim()); // Handle escaped quotes
+                } else {
+                    shifts = { values: [] }; // Default to an empty array if undefined
+                }
+            } catch (e) {
+                console.error(`Error parsing shifts for row: ${row}`, e);
+                shifts = { values: [] }; // Default to an empty array if parsing fails
+            }
             return {
                 managementUnitId: values[1] ? values[1].trim() : '',
                 workPlanId: values[3] ? values[3].trim() : '',
