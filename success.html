@@ -1,233 +1,153 @@
-<link rel="stylesheet" href="https://nomanhassan82.github.io/NomanWorkGC/treeview-navigation.css">
-<div class="page">
-            <header role="banner">
-              <div class="title" id="id_website_title">Mythical University</div>
-              <div class="tagline">Using a Tree widget pattern for navigation links</div>
-            </header>
-            <div class="body">
-              <nav aria-label="Mythical University">
-                <ul class="treeview-navigation" role="tree" aria-label="Mythical University">
-                  <li role="none">
-                    <a role="treeitem" href="#home" aria-current="page">
-                      <span class="label">Home</span>
-                    </a>
-                  </li>
-                  <li role="none">
-                    <a role="treeitem" aria-expanded="false" aria-owns="id-about-subtree" href="#about">
-                      <span class="label">
-                        <span class="icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10">
-                            <polygon points="2 1, 12 1, 7 9"></polygon>
-                          </svg>
-                        </span>
-                        About
-                      </span>
-                    </a>
-                    <ul id="id-about-subtree" role="group" aria-label="About">
-                      <li role="none">
-                        <a role="treeitem" href="#overview">
-                          <span class="label">Overview</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#adminstration">
-                          <span class="label">Administration</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" aria-expanded="false" aria-owns="id-facts-subtree" href="#facts">
-                          <span class="label">
-                            <span class="icon">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10">
-                                <polygon points="2 1, 12 1, 7 9"></polygon>
-                              </svg>
-                            </span>
-                            Facts
-                          </span>
-                        </a>
-                        <ul id="id-facts-subtree" role="group" aria-label="Facts">
-                          <li role="none">
-                            <a role="treeitem" href="#history">
-                              <span class="label">History</span>
-                            </a>
-                          </li>
-                          <li role="none">
-                            <a role="treeitem" href="#current-statistics">
-                              <span class="label"> Current Statistics </span>
-                            </a>
-                          </li>
-                          <li role="none">
-                            <a role="treeitem" href="#awards">
-                              <span class="label">Awards</span>
-                            </a>
-                          </li>
-                        </ul>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" aria-expanded="false" aria-owns="id-campus-tours-subtree" href="#campus-tours">
-                          <span class="label">
-                            <span class="icon">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10">
-                                <polygon points="2 1, 12 1, 7 9"></polygon>
-                              </svg>
-                            </span>
-                            Campus Tours
-                          </span>
-                        </a>
-                        <ul id="id-campus-tours-subtree" role="group" aria-label="Campus Tours">
-                          <li role="none">
-                            <a role="treeitem" href="#for-prospective-students">
-                              <span class="label"> For Prospective Students </span>
-                            </a>
-                          </li>
-                          <li role="none">
-                            <a role="treeitem" href="#for-alumni">
-                              <span class="label">For Alumni</span>
-                            </a>
-                          </li>
-                          <li role="none">
-                            <a role="treeitem" href="#for-visitors">
-                              <span class="label">For Visitors</span>
-                            </a>
-                          </li>
-                        </ul>
-                      </li>
-                    </ul>
-                  </li>
-                  <li role="none">
-                    <a role="treeitem" aria-expanded="false" aria-owns="id-admissions-subtree" href="#admissions">
-                      <span class="label">
-                        <span class="icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10">
-                            <polygon points="2 1, 12 1, 7 9"></polygon>
-                          </svg>
-                        </span>
-                        Admissions
-                      </span>
-                    </a>
-                    <ul id="id-admissions-subtree" role="group" aria-label="Admissions">
-                      <li role="none">
-                        <a role="treeitem" href="#apply">
-                          <span class="label">Apply</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" aria-expanded="false" aria-owns="id-tuition-subtree" href="#tuition">
-                          <span class="label">
-                            <span class="icon">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10">
-                                <polygon points="2 1, 12 1, 7 9"></polygon>
-                              </svg>
-                            </span>
-                            Tuition
-                          </span>
-                        </a>
-                        <ul id="id-tuition-subtree" role="group" aria-label="Tuition">
-                          <li role="none">
-                            <a role="treeitem" href="#undergraduate">
-                              <span class="label">Undergraduate</span>
-                            </a>
-                          </li>
-                          <li role="none">
-                            <a role="treeitem" href="#graduate">
-                              <span class="label">Graduate</span>
-                            </a>
-                          </li>
-                          <li role="none">
-                            <a role="treeitem" href="#professional-schools">
-                              <span class="label">Professional Schools</span>
-                            </a>
-                          </li>
-                        </ul>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#signup">
-                          <span class="label">Sign Up</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#visit">
-                          <span class="label">Visit</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#photo-tour">
-                          <span class="label">Photo Tour</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#connect">
-                          <span class="label">Connect</span>
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li role="none">
-                    <a role="treeitem" aria-expanded="false" aria-owns="id-academics-subtree" href="#academics">
-                      <span class="label">
-                        <span class="icon">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="10" viewBox="0 0 13 10">
-                            <polygon points="2 1, 12 1, 7 9"></polygon>
-                          </svg>
-                        </span>
-                        Academics
-                      </span>
-                    </a>
-                    <ul id="id-academics-subtree" role="group" aria-label="Academics">
-                      <li role="none">
-                        <a role="treeitem" href="#colleges-and-schools">
-                          <span class="label">Colleges &amp; Schools</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#programs-of-study">
-                          <span class="label">Programs of Study</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#honors-programs">
-                          <span class="label">Honors Programs</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#online-courses">
-                          <span class="label">Online Courses</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#course-explorer">
-                          <span class="label">Course Explorer</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#register-for-classes">
-                          <span class="label">Register for Classes</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#academic-calendar">
-                          <span class="label">Academic Calendar</span>
-                        </a>
-                      </li>
-                      <li role="none">
-                        <a role="treeitem" href="#tanscripts">
-                          <span class="label">Transcripts</span>
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-                </ul>
-              </nav>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tykans GCX Config Utility</title>
+    <style>
+        /* Base styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff; /* White background */
+            color: #0F3057; /* Dark navy blue text color */
+            text-align: center; /* Center align the content */
+        }
 
-              
-              <section class="main" aria-labelledby="id_website_title id_page_title">
-                <h1 class="page_title" id="id_page_title">Mythical University</h1>
-                <div class="content">
-                  <p></p>
-                </div>
-              </section>
-            </div>
-            
-            <footer role="contentinfo">Mythical University footer information</footer>
-          </div>
-        
+        /* Container styles */
+        .container {
+            margin-top: 150px; /* Add space from the top for better visibility */
+        }
+
+        /* Logo styles */
+        .logo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: auto; /* Allow the height to adjust according to the logo's aspect ratio */
+            height: 80px; /* Set logo height to 80px */
+            z-index: 1000; /* Ensure the logo appears above the grey bar */
+        }
+
+        /* Top bar styles */
+        .top-bar {
+            width: 100%;
+            height: 100px; /* Adjusted height to cover logo */
+            background-color: #f3f3f3; /* Light grey background */
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 999; /* Ensure top layer */
+        }
+
+        /* Main heading styles */
+        h2 {
+            font-size: 40px; /* Increased font size */
+            margin-top: 150px; /* Adjusted margin to accommodate top bar and logo */
+        }
+
+        /* Search bar styles */
+        .search-bar {
+            width: calc(90% - 40px); /* Adjusted width to make it smaller */
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 10px;
+            border: 2px solid #0F3057; /* Dark navy blue border */
+            border-radius: 25px; /* Rounded corners */
+            font-size: 16px;
+            color: #000; /* Black text color */
+            outline: none;
+        }
+
+        /* Button list styles */
+        .button-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0;
+            margin: 20px auto; /* Add margin between search bar and button list */
+            max-width: 800px;
+            list-style-type: none; /* Remove bullet points */
+        }
+
+        /* Button styles */
+        .button-list li {
+            margin-right: 10px;
+            margin-bottom: 20px;
+        }
+
+        .button-list li button {
+            padding: 20px 40px; /* Bigger buttons */
+            background-color: #0F3057; /* Dark navy blue background */
+            color: #fff; /* White text color */
+            border: 2px solid transparent; /* Transparent border */
+            border-radius: 25px; /* Rounded corners */
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; /* Smooth transition */
+        }
+
+        .button-list li button:hover {
+            background-color: #fff; /* White background on hover */
+            color: #0F3057; /* Dark navy blue text color on hover */
+            border-color: #0F3057; /* Dark navy blue border on hover */
+        }
+    </style>
+</head>
+<body>
+    <!-- Top bar -->
+    <div class="top-bar"></div>
+
+    <!-- Tykans logo -->
+    <img class="logo" src="https://www.tykans.com/hs-fs/hubfs/Tykans_June2023/Images/Tykans%20-header-logo.png" alt="Tykans Logo">
+
+    <div class="container">
+        <h2>What would you like to do today?</h2>
+        <!-- Search bar -->
+        <input type="text" class="search-bar" id="searchInput" placeholder="Search...">
+        <!-- Button list -->
+        <ul class="button-list">
+            <li><button>Architect Flows</button></li>
+            <li><button>Data Actions</button></li>
+            <li><button>Data Tables</button></li>
+            <li><button>Flow Milestone</button></li>
+            <li><button>Flow Outcome</button></li>
+            <li><button>Integrations</button></li>
+            <li><button>Prompts</button></li>
+            <li><button>Queues</button></li>
+            <li><button>Roles</button></li>
+            <li><button>Scripts</button></li>
+            <li><button id="workplanBtn">Workplan</button></li>
+        </ul>
+    </div>
+
+    <script>
+        // Real-time search functionality
+        document.getElementById('searchInput').addEventListener('input', function(event) {
+            const searchTerm = event.target.value.toLowerCase();
+            const buttons = document.querySelectorAll('.button-list li button');
+            buttons.forEach(function(button) {
+                const buttonText = button.textContent.toLowerCase();
+                if (buttonText.includes(searchTerm)) {
+                    button.parentNode.style.display = 'block';
+                } else {
+                    button.parentNode.style.display = 'none';
+                }
+            });
+        });
+
+        // Redirect to prompts.html with token when Prompts button is clicked
+        document.querySelector('.button-list li:nth-child(7) button').addEventListener('click', function() {
+            const token = new URLSearchParams(window.location.search).get('token');
+            window.location.href = `prompts.html?token=${token}`;
+        });
+
+        // Redirect to workplan.html with token when Workplan button is clicked
+        document.getElementById('workplanBtn').addEventListener('click', function() {
+            const token = new URLSearchParams(window.location.search).get('token');
+            window.location.href = `workplan.html?token=${token}`;
+        });
+    </script>
+</body>
+</html>
