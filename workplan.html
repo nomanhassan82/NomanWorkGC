@@ -108,21 +108,10 @@ function parseCSV(file) {
         const rows = text.split('\n').slice(1); // Skip the header row
         const csvData = rows.map(row => {
             const values = row.split(',');
-            let shiftStartVariances;
-            try {
-                if (values[26] !== undefined && values[26] !== null) {
-                    shiftStartVariances = JSON.parse(values[26].replace(/""/g, '"').trim()); // Handle escaped quotes
-                } else {
-                    shiftStartVariances = { values: [] }; // Default to an empty array if undefined
-                }
-            } catch (e) {
-                console.error(`Error parsing shiftStartVariances for row: ${row}`, e);
-                shiftStartVariances = { values: [] }; // Default to an empty array if parsing fails
-            }
             let shifts;
             try {
-                if (values[32] !== undefined && values[32] !== null) {
-                    shifts = JSON.parse(values[32].replace(/""/g, '"').trim()); // Handle escaped quotes
+                if (values[26] !== undefined && values[26] !== null) {
+                    shifts = JSON.parse(values[26].replace(/""/g, '"').trim()); // Handle escaped quotes
                 } else {
                     shifts = { values: [] }; // Default to an empty array if undefined
                 }
@@ -130,6 +119,7 @@ function parseCSV(file) {
                 console.error(`Error parsing shifts for row: ${row}`, e);
                 shifts = { values: [] }; // Default to an empty array if parsing fails
             }
+
             return {
                 managementUnitId: values[1] ? values[1].trim() : '',
                 workPlanId: values[3] ? values[3].trim() : '',
@@ -161,11 +151,11 @@ function parseCSV(file) {
                     metadata: {
                         version: parseInt(values[25] ? values[25].trim() : '0')
                     },
-                    shiftStartVariances: shiftStartVariances,
+                    shifts: shifts,
                     minimumWorkingDaysPerWeek: parseInt(values[27] ? values[27].trim() : '0'),
                     maximumDays: parseInt(values[28] ? values[28].trim() : '0'),
-                    valid: values[values.length - 1] ? values[values.length - 1].trim().toUpperCase() === 'TRUE' : false, // Include valid field in data
-                    shifts: shifts
+                    valid: values[values.length - 1] ? values[values.length - 1].trim().toUpperCase() === 'TRUE' : false // Include valid field in data
+                    
                 }
             };
         });
