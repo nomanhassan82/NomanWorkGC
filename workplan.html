@@ -125,8 +125,8 @@ function parseCSV(file) {
                 updates: values[values.length - 2] ? values[values.length - 2].trim().toUpperCase() === 'TRUE' : false, // Adjusted index for updates
                 valid: values[values.length - 1] ? values[values.length - 1].trim().toUpperCase() === 'TRUE' : false, // New field for valid
                 data: {
-                    name: values[2] ? values[2].trim() : '',
-                    enabled: values[4] ? values[4].trim() === 'TRUE' : false,
+                    name: values[2] ? values[2].trim() : '', 
+                    enabled: values[4] ? values[4].trim() === 'TRUE' : false, 
                     constrainWeeklyPaidTime: values[5] ? values[5].trim() === 'TRUE' : false,
                     flexibleWeeklyPaidTime: values[6] ? values[6].trim() === 'TRUE' : false,
                     weeklyExactPaidMinutes: parseInt(values[7] ? values[7].trim() : '0'),
@@ -153,7 +153,8 @@ function parseCSV(file) {
                     shiftStartVariances: shiftStartVariances,
                     minimumWorkingDaysPerWeek: parseInt(values[27] ? values[27].trim() : '0'),
                     maximumDays: parseInt(values[28] ? values[28].trim() : '0'),
-                    valid: values[values.length - 1] ? values[values.length - 1].trim().toUpperCase() === 'TRUE' : false // Include valid field in data
+                    valid: values[values.length - 1] ? values[values.length - 1].trim().toUpperCase() === 'TRUE' : false, // Include valid field in data
+                    shifts: shifts
                 }
             };
         });
