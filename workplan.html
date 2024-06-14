@@ -121,8 +121,8 @@ function parseCSV(file) {
             }
             let shifts;
             try {
-                if (values[30] !== undefined && values[30] !== null) {
-                    shifts = JSON.parse(values[30].replace(/""/g, '"').trim()); // Handle escaped quotes
+                if (values[32] !== undefined && values[32] !== null) {
+                    shifts = JSON.parse(values[32].replace(/""/g, '"').trim()); // Handle escaped quotes
                 } else {
                     shifts = { values: [] }; // Default to an empty array if undefined
                 }
