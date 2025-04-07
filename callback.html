@@ -3,139 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Google OAuth Callback</title>
+  <title>OAuth Callback</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: #f5f5f5;
-    }
-    .container {
-      text-align: center;
-      padding: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      max-width: 500px;
-    }
-    #status {
-      margin: 20px 0;
-      padding: 15px;
-      border-radius: 4px;
-    }
-    .success {
-      background: #e6f7ee;
-      color: #2e7d32;
-      border: 1px solid #a5d6a7;
-    }
-    .error {
-      background: #ffebee;
-      color: #c62828;
-      border: 1px solid #ef9a9a;
-    }
-    pre {
-      background: #f0f0f0;
-      padding: 10px;
-      border-radius: 4px;
-      text-align: left;
-      overflow-x: auto;
-    }
-    button {
-      background: #4285F4;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 20px;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    #result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Google OAuth 2.0 Callback</h2>
-    <div id="status">Processing authentication...</div>
-    <pre id="response" style="display: none;"></pre>
-    <button id="continueBtn" style="display: none;">Continue to App</button>
-  </div>
+  <h2>Processing Google Authentication...</h2>
+  <div id="result"></div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const error = urlParams.get('error');
-      const statusEl = document.getElementById('status');
-      const responseEl = document.getElementById('response');
-      const continueBtn = document.getElementById('continueBtn');
+      const state = urlParams.get('state');
+      const savedState = sessionStorage.getItem('oauth_state');
+      
+      const resultEl = document.getElementById('result');
 
-      // Handle OAuth errors (e.g., user denied access)
+      // Check for errors first
       if (error) {
-        statusEl.innerHTML = `❌ Error: ${error}`;
-        statusEl.className = 'error';
+        resultEl.innerHTML = `Error: ${error}`;
         return;
       }
 
-      // If no code, show error
-      if (!code) {
-        statusEl.innerHTML = '❌ No authorization code received.';
-        statusEl.className = 'error';
+      // Verify state token
+      if (!state || state !== savedState) {
+        resultEl.innerHTML = 'Error: Invalid state parameter';
         return;
       }
 
-      // Exchange code for access token (CLIENT-SIDE DEMO ONLY - UNSAFE FOR PRODUCTION)
-      try {
-        statusEl.innerHTML = '🔑 Exchanging code for access token...';
+      // Success case
+      if (code) {
+        resultEl.innerHTML = `
+          <h3>Success!</h3>
+          <p>Authorization code received.</p>
+          <p>Code: <code>${code}</code></p>
+          <p>Now exchanging for access token...</p>
+        `;
         
-        // Replace with your actual Google OAuth client ID and secret
-        // WARNING: Never expose client_secret in client-side code in production!
-        const clientId = 'YOUR_GOOGLE_CLIENT_ID';
-        const clientSecret = 'YOUR_GOOGLE_CLIENT_SECRET'; // Only for demo!
-        const redirectUri = window.location.origin + window.location.pathname;
-
-        const response = await fetch('https://oauth2.googleapis.com/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            code,
-            client_id: clientId,
-            client_secret: clientSecret, // Remove this in production!
-            redirect_uri: redirectUri,
-            grant_type: 'authorization_code',
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-          throw new Error(data.error_description || 'Token exchange failed');
-        }
-
-        // Success!
-        statusEl.innerHTML = '✅ Login successful!';
-        statusEl.className = 'success';
-        responseEl.textContent = JSON.stringify(data, null, 2);
-        responseEl.style.display = 'block';
-        continueBtn.style.display = 'inline-block';
-
-        // Save tokens (for demo only - use HttpOnly cookies in production)
-        localStorage.setItem('google_access_token', data.access_token);
-        console.log('Access Token:', data.access_token);
-
-      } catch (err) {
-        statusEl.innerHTML = `❌ Error: ${err.message}`;
-        statusEl.className = 'error';
-        console.error(err);
+        // Send code to your backend (example using Fetch API)
+        exchangeCodeForToken(code);
+      } else {
+        resultEl.innerHTML = 'Error: No authorization code received';
       }
     });
 
-    // Continue button action
-    document.getElementById('continueBtn').addEventListener('click', () => {
-      window.location.href = '/'; // Redirect to your app's main page
-    });
+    async function exchangeCodeForToken(code) {
+      try {
+        // In production, this should call YOUR backend, not do it client-side
+        const response = await fetch('YOUR_BACKEND_ENDPOINT', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        
+        const data = await response.json();
+        console.log('Token response:', data);
+        
+        // Handle the token response (store securely, redirect, etc.)
+      } catch (err) {
+        console.error('Token exchange failed:', err);
+      }
+    }
   </script>
 </body>
 </html>
