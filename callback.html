@@ -96,7 +96,17 @@
         codeContainerEl.style.display = 'block';
 
         // In a real app, send the code to your backend here
-        sendCodeToBackend(code);
+        sendCodeToBackend(app.post('/auth/google', async (req, res) => {
+  const { code } = req.body;
+  const { data } = await axios.post('https://oauth2.googleapis.com/token', {
+    client_id: 'YOUR_CLIENT_ID',
+    client_secret: 'YOUR_CLIENT_SECRET',
+    code,
+    redirect_uri: 'http://localhost/callback.html', // Must match!
+    grant_type: 'authorization_code',
+  });
+  res.json(data); // Returns { access_token, refresh_token }
+}););
       } else {
         statusEl.innerHTML = 'Error: No authorization code received.';
         statusEl.className = 'error';
@@ -109,7 +119,17 @@
     });
 
     // Example: Send the code to your backend (replace with your API endpoint)
-    function sendCodeToBackend(code) {
+    function sendCodeToBackend(app.post('/auth/google', async (req, res) => {
+  const { code } = req.body;
+  const { data } = await axios.post('https://oauth2.googleapis.com/token', {
+    client_id: 'YOUR_CLIENT_ID',
+    client_secret: 'YOUR_CLIENT_SECRET',
+    code,
+    redirect_uri: 'http://localhost/callback.html', // Must match!
+    grant_type: 'authorization_code',
+  });
+  res.json(data); // Returns { access_token, refresh_token }
+});) {
       fetch('https://your-backend-api.com/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
