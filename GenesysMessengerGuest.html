@@ -47,7 +47,7 @@
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'Authorization': 'Basic ' + btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)
                     },
-                    body: 'grant_type=PKCE'
+                    body: 'grant_type=authorization_code'
                 });
                 
                 if (!response.ok) {
