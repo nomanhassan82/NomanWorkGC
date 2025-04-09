@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genesys Messenger Headless Mode</title>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="messages"></div>
+    <input type="text" id="message-input" placeholder="Type a message..." />
+    <button id="send-button">Send</button>
+  </div>
+
+  <!-- Include Genesys Messenger SDK -->
+  <script src="https://sdk-cdn.mypurecloud.com/javascript-messenger/1.0.0/messenger.min.js"></script>
+
+  <script type="text/javascript">
+    // Initialize Messenger SDK in headless mode
+    const messenger = new GenesysCloudMessenger({
+      deploymentId: '1eb41dea-8703-4b75-8392-10501b321535', // Replace with your deployment ID
+      region: 'cac1',             // Replace with your Genesys Cloud region (e.g., 'us-east-1')
+      orgId: 'e907a7ef-d5cf-4999-a4b6-b5ff109d8f3f'      // Replace with your organization ID
+    });
+
+    // Connect to Messenger
+    messenger.connect()
+      .then(() => {
+        console.log('Messenger connected successfully!');
+      })
+      .catch((error) => {
+        console.error('Failed to connect:', error);
+      });
+
+    // Handle incoming messages
+    messenger.on('messageReceived', (message) => {
+      const messagesDiv = document.getElementById('messages');
+      const newMessage = document.createElement('div');
+      newMessage.textContent = `Agent: ${message.body}`;
+      messagesDiv.appendChild(newMessage);
+    });
+
+    // Send a message
+    document.getElementById('send-button').addEventListener('click', () => {
+      const input = document.getElementById('message-input');
+      const userMessage = input.value;
+
+      messenger.sendMessage({ body: userMessage })
+        .then(() => {
+          const messagesDiv = document.getElementById('messages');
+          const newMessage = document.createElement('div');
+          newMessage.textContent = `You: ${userMessage}`;
+          messagesDiv.appendChild(newMessage);
+
+          input.value = ''; // Clear input field
+        })
+        .catch((error) => {
+          console.error('Failed to send message:', error);
+        });
+    });
+  </script>
+</body>
+</html>
