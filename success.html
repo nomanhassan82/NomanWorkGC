@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tykans GCX Config Utility</title>
+    <title>GCX Config Utility</title>
     <style>
         /* Base styles */
         body {
@@ -108,17 +108,8 @@
         <input type="text" class="search-bar" id="searchInput" placeholder="Search...">
         <!-- Button list -->
         <ul class="button-list">
-            <li><button>Architect Flows</button></li>
-            <li><button>Data Actions</button></li>
-            <li><button>Data Tables</button></li>
-            <li><button>Flow Milestone</button></li>
-            <li><button>Flow Outcome</button></li>
-            <li><button>Integrations</button></li>
-            <li><button>Prompts</button></li>
-            <li><button>Queues</button></li>
-            <li><button>Roles</button></li>
-            <li><button>Scripts</button></li>
             <li><button id="workplanBtn">Workplan</button></li>
+            <li><button id="webmessage">Web Messager</button></li>
         </ul>
     </div>
 
@@ -137,16 +128,17 @@
             });
         });
 
-        // Redirect to prompts.html with token when Prompts button is clicked
-        document.querySelector('.button-list li:nth-child(7) button').addEventListener('click', function() {
-            const token = new URLSearchParams(window.location.search).get('token');
-            window.location.href = `prompts.html?token=${token}`;
-        });
+
 
         // Redirect to workplan.html with token when Workplan button is clicked
         document.getElementById('workplanBtn').addEventListener('click', function() {
             const token = new URLSearchParams(window.location.search).get('token');
             window.location.href = `workplan.html?token=${token}`;
+        });
+                // Redirect to webmessage.html with token when Workplan button is clicked
+        document.getElementById('workplanBtn').addEventListener('click', function() {
+            const token = new URLSearchParams(window.location.search).get('token');
+            window.location.href = `webmessage.html?token=${token}`;
         });
     </script>
 </body>
