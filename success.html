@@ -136,7 +136,7 @@
             window.location.href = `workplan.html?token=${token}`;
         });
                 // Redirect to webmessage.html with token when Workplan button is clicked
-        document.getElementById('workplanBtn').addEventListener('click', function() {
+        document.getElementById('webmessage').addEventListener('click', function() {
             const token = new URLSearchParams(window.location.search).get('token');
             window.location.href = `webmessage.html?token=${token}`;
         });
