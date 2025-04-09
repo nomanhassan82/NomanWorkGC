@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesys Web Messaging with Implicit Grant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #auth-container {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Genesys Web Messaging with Implicit Grant</h1>
+    
+    <div id="auth-container">
+        <button id="loginButton">Login to Genesys</button>
+        <div id="status" class="disconnected">Not authenticated</div>
+    </div>
+    
+    <div id="messages"></div>
+    
+    <script>
+        // Configuration
+        const CLIENT_ID = 'YOUR_CLIENT_ID'; // Replace with your Genesys OAuth client ID
+        const DEPLOYMENT_ID = 'dcd7ee74-f592-42b0-968c-be0cfd81';
+        const REGION = 'cac1.pure.cloud'; // Adjust for your region
+        const REDIRECT_URI = encodeURIComponent(window.location.origin + window.location.pathname);
+        
+        // DOM elements
+        const loginButton = document.getElementById('loginButton');
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+        
+        // Handle the OAuth response when page loads
+        window.addEventListener('load', function() {
+            const hash = window.location.hash.substr(1);
+            const params = new URLSearchParams(hash);
+            
+            if (params.has('access_token')) {
+                // We got a token in the URL
+                const token = params.get('access_token');
+                statusDiv.textContent = 'Authenticated with Genesys';
+                statusDiv.className = 'status connected';
+                
+                // Remove token from URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // Connect to WebSocket
+                connectWebSocket(token);
+            } else if (params.has('error')) {
+                // Handle error
+                statusDiv.textContent = `Error: ${params.get('error_description') || params.get('error')}`;
+                console.error('OAuth error:', params.get('error_description'));
+            }
+        });
+        
+        // Start the OAuth flow
+        loginButton.addEventListener('click', function() {
+            const authUrl = `https://login.${REGION}/oauth/authorize?` +
+                `response_type=token` +
+                `&client_id=${CLIENT_ID}` +
+                `&redirect_uri=${REDIRECT_URI}` +
+                `&scope=webmessaging`;
+            
+            window.location.href = authUrl;
+        });
+        
+        // WebSocket connection
+        function connectWebSocket(token) {
+            const wsUrl = `wss://webmessaging.${REGION}/v1?deploymentId=${DEPLOYMENT_ID}&token=${token}`;
+            const socket = new WebSocket(wsUrl);
+            
+            socket.onopen = function() {
+                logMessage('Connected to Genesys Web Messaging');
+            };
+            
+            socket.onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    logMessage(`Received: ${message.text}`);
+                } catch (e) {
+                    console.error('Error parsing message:', e);
+                }
+            };
+            
+            socket.onclose = function() {
+                logMessage('Disconnected from Genesys');
+                statusDiv.textContent = 'Disconnected (token may have expired)';
+                statusDiv.className = 'status disconnected';
+            };
+            
+            socket.onerror = function(error) {
+                logMessage(`WebSocket error: ${error.message}`);
+            };
+        }
+        
+        function logMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            messagesDiv.appendChild(messageElement);
+        }
+    </script>
+</body>
+</html>
