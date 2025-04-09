@@ -88,7 +88,20 @@
         const messagesDiv = document.getElementById('messages');
 
         // WebSocket connection
-        let socket;
+        let socket = null;
+
+        // Helper functions
+        function updateStatus(text, className) {
+            statusDiv.textContent = text;
+            statusDiv.className = className;
+        }
+        
+        function logMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
 
         // Connect to WebSocket
         function connectWebSocket() {
@@ -107,6 +120,7 @@
                 socket.onopen = function() {
                     updateStatus('Connected (Authenticating)', 'connecting');
                     logMessage('WebSocket connected, waiting for authentication...');
+                    disconnectBtn.disabled = false;
                 };
                 
                 socket.onmessage = function(event) {
@@ -136,6 +150,7 @@
                 
                 socket.onclose = function(event) {
                     updateStatus('Disconnected', 'disconnected');
+                    disconnectBtn.disabled = true;
                     logMessage(`Connection closed: ${event.code} - ${event.reason || 'No reason provided'}`);
                 };
                 
@@ -156,27 +171,9 @@
             }
         }
 
-        // Helper functions
-        function updateStatus(text, className) {
-            statusDiv.textContent = text;
-            statusDiv.className = className;
-        }
-        
-        function logMessage(message) {
-            const messageElement = document.createElement('div');
-            messageElement.textContent = message;
-            messagesDiv.appendChild(messageElement);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
         // Event listeners
         connectBtn.addEventListener('click', connectWebSocket);
         disconnectBtn.addEventListener('click', disconnectWebSocket);
-
-        // Enable disconnect button when connected
-        socket.onopen = function() {
-            disconnectBtn.disabled = false;
-        };
 
         // If token is present, automatically connect
         if (urlToken) {
