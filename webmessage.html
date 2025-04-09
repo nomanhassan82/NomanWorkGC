@@ -2,6 +2,43 @@
 <html>
 <head>
 <title>Page Title</title>
+  <script>
+ // WebSocket connection
+        function connectWebSocket(token) {
+            const wsUrl = `wss://webmessaging.cac1.pure.cloud/v1?deploymentId=dcd7ee74-f592-42b0-968c-be0cfd88aead&token=${token}`;
+            const socket = new WebSocket(wsUrl);
+            
+            socket.onopen = function() {
+                logMessage('Connected to Genesys Web Messaging');
+            };
+            
+            socket.onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    logMessage(`Received: ${message.text}`);
+                } catch (e) {
+                    console.error('Error parsing message:', e);
+                }
+            };
+            
+            socket.onclose = function() {
+                logMessage('Disconnected from Genesys');
+                statusDiv.textContent = 'Disconnected (token may have expired)';
+                statusDiv.className = 'status disconnected';
+            };
+            
+            socket.onerror = function(error) {
+                logMessage(`WebSocket error: ${error.message}`);
+            };
+        }
+        
+        function logMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            messagesDiv.appendChild(messageElement);
+        }
+    
+  </script>
 </head>
 <body>
 
