@@ -3,16 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Genesys Messenger Headless Mode Integration</title>
+  <title>Genesys Messenger Headless Mode</title>
 
   <script type="text/javascript" charset="utf-8">
-    // Initialize Genesys after DOM loads
     document.addEventListener("DOMContentLoaded", function() {
       (function(g, e, n, es, ys) {
         g['_genesysJs'] = e;
-        g[e] = g[e] || function() {
-          (g[e].q = g[e].q || []).push(arguments);
-        };
+        g[e] = g[e] || function() { (g[e].q = g[e].q || []).push(arguments); };
         g[e].t = 1 * new Date();
         g[e].c = es;
         ys = document.createElement('script');
@@ -24,58 +21,60 @@
         deploymentId: '52f242c7-8771-4368-b20b-2929a715fedb',
         environment: 'prod-cac1',
         debug: true,
-        messenger: {
-          headlessMode: true // Enables Headless Mode
-        }
+        messenger: { headlessMode: true }
       });
     });
 
-    // Function to start a conversation using Headless Mode
     function startConversation() {
       Genesys("subscribe", "MessagingService.ready", function() {
-        console.log("Headless Messaging Service is ready");
-
-        // Start a conversation
-        Genesys("command", "MessagingService.startConversation", {
-          channel: { type: "web" },
-          context: { customAttributes: { page: "Home" } }
-        },
-        function(response) {
-          console.log("Conversation started successfully:", response);
-        },
-        function(error) {
-          console.error("Error starting conversation:", error);
-        });
+        Genesys("command", "MessagingService.getActiveConversation", {},
+          function(response) {
+            if (response && response.conversationId) {
+              console.log("Active conversation found:", response.conversationId);
+            } else {
+              Genesys("command", "MessagingService.startConversation", { channel: { type: "web" } },
+                function(response) { console.log("New conversation started:", response); },
+                function(error) { console.error("Error starting conversation:", error); }
+              );
+            }
+          },
+          function(error) { console.error("Error checking active conversation:", error); }
+        );
       });
     }
 
-    // Function to send a message in the conversation
     function sendMessage() {
       const messageText = document.getElementById("messageInput").value;
+      Genesys("command", "MessagingService.getActiveConversation", {},
+        function(response) {
+          if (response && response.conversationId) {
+            Genesys("command", "MessagingService.sendMessage", { text: messageText },
+              function(response) { console.log("Message sent successfully:", response); },
+              function(error) { console.error("Error sending message:", error); }
+            );
+          } else {
+            console.error("No active conversation. Start a new session first.");
+          }
+        },
+        function(error) { console.error("Error checking active conversation:", error); }
+      );
+    }
 
-      Genesys("command", "MessagingService.sendMessage", {
-        text: messageText
-      },
-      function(response) {
-        console.log("Message sent successfully:", response);
-      },
-      function(error) {
-        console.error("Error sending message:", error);
-      });
+    function endConversation() {
+      Genesys("command", "MessagingService.endConversation", {},
+        function(response) { console.log("Conversation ended successfully"); },
+        function(error) { console.error("Error ending conversation:", error); }
+      );
     }
   </script>
 </head>
 <body>
-  <h1>Genesys Messenger Headless Mode Integration</h1>
-  <p>Click the button below to start a conversation using Genesys Messenger Headless Mode.</p>
-
-  <!-- Button to start a conversation -->
-  <button type="button" onclick="startConversation()">Start Conversation</button>
-
-  <div id="messagingUI">
-    <h2>Send a Message</h2>
-    <input type="text" id="messageInput" placeholder="Type your message here">
-    <button type="button" onclick="sendMessage()">Send Message</button>
+  <h1>Genesys Messenger Headless Mode</h1>
+  <button onclick="startConversation()">Start Conversation</button>
+  <button onclick="endConversation()">End Conversation</button>
+  <div>
+    <input id="messageInput" type="text" placeholder="Type your message">
+    <button onclick="sendMessage()">Send Message</button>
   </div>
 </body>
 </html>
