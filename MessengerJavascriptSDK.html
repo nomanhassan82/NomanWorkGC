@@ -30,7 +30,7 @@
     // Function to toggle the Messenger
     function toggleMessenger() {
       // Wait for Messenger to be ready before executing commands
-      Genesys("subscribe", "Messenger.ready", function () {
+      Genesys("subscribe", "Launcher.ready" , function(o) {
         console.log("Messenger is ready");
         
         // Open the Messenger when ready
