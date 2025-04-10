@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Genesys Messenger Integration</title>
 
-  <script type="text/javascript">
+  <script type="text/javascript" charset="utf-8">
     // Load Genesys script after the window has loaded
     window.onload = function () {
       (function (g, e, n, es, ys) {
@@ -31,7 +31,7 @@
     function toggleMessenger() {
       // Wait for Messenger to be ready before executing commands
       Genesys("subscribe", "Launcher.ready" , function(o) {
-        console.log("Messenger is ready");
+        console.log("The queue works!");
         
         // Open the Messenger when ready
         Genesys("command", "Messenger.open", {}, 
