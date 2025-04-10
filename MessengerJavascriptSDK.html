@@ -6,7 +6,7 @@
   <title>Genesys Messenger Integration</title>
 
   <script type="text/javascript" charset="utf-8">
-    // Load Genesys script after the window has loaded
+    // Load Genesys script after the DOM has loaded
     window.onload = function () {
       (function (g, e, n, es, ys) {
         g['_genesysJs'] = e;
@@ -27,44 +27,37 @@
       });
     };
 
-    // Function to toggle the Messenger
+    // Function to toggle Messenger and display a Toaster notification
     function toggleMessenger() {
-       
-        
-Genesys("subscribe", "Toaster.ready", () => {
-  Genesys(
-    "command",
-    "Toaster.open",
-    {
-      title: "Welcome to Genesys Cloud",
-      body: "Encountering issues? Our support team is ready to troubleshoot and assist you.",
-      buttons: {
-        type: "binary", // required when 'buttons' is present. Values: "unary" for one action button, "binary" for two action buttons
-        primary: "Get Support", // optional, default value is "Accept"
-        secondary: "Maybe Later", // optional, default value is "Decline"
-      },
-    },
-    function () {
-      /*fulfilled callback*/
-      console.log("Toaster is opened");
-    },
-    function (error) {
-      /*rejected callback*/
-      console.log("There was an error running the Toaster.open command:", error);
-    }
-  );
-});
-        
+      // Wait for Messenger to be ready before executing commands
+      Genesys("subscribe", "Messenger.ready", function () {
+        console.log("Messenger is ready");
+
+        // Open a Toaster notification
+        Genesys("command", "Toaster.open", {
+          title: "Welcome to Genesys Cloud",
+          body: "Encountering issues? Our support team is ready to assist you.",
+          buttons: {
+            type: "binary", // 'binary' for two action buttons
+            primary: "Get Support", // Primary button text
+            secondary: "Maybe Later" // Secondary button text
+          }
+        },
+        function () {
+          console.log("Toaster opened successfully");
+        },
+        function (error) {
+          console.error("Error opening Toaster:", error);
+        });
+      });
     }
   </script>
-
-  
 </head>
 <body>
   <h1>Genesys Messenger Integration</h1>
-  <p>Click the button below to launch the Genesys Messenger.</p>
+  <p>Click the button below to launch the Genesys Messenger and display a notification.</p>
 
-  <!-- Button to launch the Messenger -->
+  <!-- Button to launch Messenger -->
   <button type="button" id="custom-launcher" onclick="toggleMessenger()">
     Open Messenger
   </button>
