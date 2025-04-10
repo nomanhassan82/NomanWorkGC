@@ -25,64 +25,47 @@
       });
     });
 
-    // Function to configure and start a conversation
+    // Start a conversation
     function startConversation() {
       Genesys("subscribe", "MessagingService.ready", function() {
-        console.log("Headless Messaging Service is ready");
+        console.log("Messaging Service is ready");
 
-        // Configure the conversation
         Genesys("command", "MessagingService.configureConversation", {},
           function(response) {
             console.log("Conversation configured:", response);
 
-            // Check if a new session is needed
-            if (response.newSession) {
+            if (response && response.newSession === true) {
               console.log("No active conversation. Starting a new session...");
-              
-              // Start a new conversation
-              Genesys("command", "MessagingService.startConversation", {
-                channel: { type: "web" }
-              },
-              function(newConv) {
-                console.log("New conversation started:", newConv.conversationId);
-              },
-              function(error) {
-                console.error("Error starting conversation:", error);
-              });
-            } else {
+              Genesys("command", "MessagingService.startConversation", { channel: { type: "web" } },
+                function(newConv) { console.log("New conversation started:", newConv.conversationId); },
+                function(error) { console.error("Error starting conversation:", error); }
+              );
+            } else if (response && response.newSession === false) {
               console.log("An active conversation already exists.");
+            } else {
+              console.error("Unexpected response from configureConversation:", response);
             }
           },
-          function(error) {
-            console.error("Error configuring conversation:", error);
-          }
+          function(error) { console.error("Error configuring conversation:", error); }
         );
       });
     }
 
-    // Function to send a message
+    // Send a message
     function sendMessage() {
       const messageText = document.getElementById("messageInput").value;
 
       Genesys("command", "MessagingService.sendMessage", { text: messageText },
-        function(response) {
-          console.log("Message sent successfully:", response);
-        },
-        function(error) {
-          console.error("Error sending message:", error);
-        }
+        function(response) { console.log("Message sent successfully:", response); },
+        function(error) { console.error("Error sending message:", error); }
       );
     }
 
-    // Function to end the current conversation
+    // End a conversation
     function endConversation() {
       Genesys("command", "MessagingService.clearConversation", {},
-        function(response) {
-          console.log("Conversation ended successfully");
-        },
-        function(error) {
-          console.error("Error ending conversation:", error);
-        }
+        function(response) { console.log("Conversation ended successfully"); },
+        function(error) { console.error("Error ending conversation:", error); }
       );
     }
   </script>
