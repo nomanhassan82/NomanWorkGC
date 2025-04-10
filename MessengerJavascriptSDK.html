@@ -30,8 +30,7 @@
     // Function to toggle Messenger and display a Toaster notification
     function toggleMessenger() {
       // Wait for Messenger to be ready before executing commands
-      Genesys("subscribe", "Messenger.ready", function () {
-        console.log("Messenger is ready");
+ 
 
         // Open a Toaster notification
         Genesys("command", "Toaster.open", {
