@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless (Callback)</title>
+  <title>Genesys Headless (Callback Only)</title>
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       // 1) Inject the Genesys bootstrap script
@@ -29,14 +29,14 @@
         }
       );
 
-      // 2) Subscribe right away to MessagingService.ready
+      // 2) Subscribe immediately to MessagingService.ready
       Genesys("subscribe", "MessagingService.ready", function() {
         console.log("✅ MessagingService.ready");
         document.getElementById("startBtn").disabled = false;
       });
     });
 
-    // 3) Configure or start/resume
+    // 3) Start or resume conversation
     function handleConversation() {
       Genesys(
         "command",
@@ -45,17 +45,15 @@
         function(response) {
           console.log("⚙️ configureConversation raw response:", response);
 
-          // Make absolutely sure response is defined
           if (!response) {
-            console.error("❌ configureConversation callback invoked with undefined response");
+            console.error("❌ configureConversation callback got undefined response");
             return;
           }
 
-          // Use the documented flag
           if (response.isSessionActive) {
-            console.log("▶️ Resuming:", response.conversationId);
+            console.log("▶️ Resuming conversation:", response.conversationId);
           } else {
-            console.log("🆕 No active session; starting new one");
+            console.log("🆕 No active session; starting a new one");
             startNewConversation();
           }
         },
@@ -75,7 +73,7 @@
         "MessagingService.startConversation",
         { channel: { type: "web" } },
         function(response) {
-          console.log("✅ New conversation started:", response.conversationId);
+          console.log("✅ startConversation response:", response);
         },
         function(error) {
           console.error("❌ startConversation error:", error);
@@ -91,6 +89,7 @@
         {},
         function(response) {
           console.log("✅ clearConversation response:", response);
+          // After clearing, start fresh
           startNewConversation();
         },
         function(error) {
@@ -119,8 +118,9 @@
   </script>
 </head>
 <body>
-  <h1>Genesys Headless (Callback)</h1>
+  <h1>Genesys Headless (Callback Only)</h1>
 
+  <!-- Disabled until MessagingService.ready fires -->
   <button id="startBtn" onclick="handleConversation()" disabled>
     Start or Resume Conversation
   </button>
@@ -130,7 +130,12 @@
   </button>
 
   <div style="margin-top:1em;">
-    <input id="messageInput" placeholder="Type your message" style="width:300px;" />
+    <input
+      id="messageInput"
+      type="text"
+      placeholder="Type your message"
+      style="width:300px;"
+    />
     <button onclick="sendMessage()">Send Message</button>
   </div>
 </body>
