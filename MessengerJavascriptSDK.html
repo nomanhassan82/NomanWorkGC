@@ -3,7 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless (Callback Only - Final Fix)</title>
+  <title>Genesys Headless Chat UI</title>
+  <style>
+    #chatWindow {
+      border: 1px solid #ccc;
+      padding: 10px;
+      width: 320px;
+      height: 250px;
+      overflow-y: auto;
+      background: #f9f9f9;
+      font-family: Arial, sans-serif;
+      margin-top: 10px;
+    }
+    .msg {
+      margin: 5px 0;
+    }
+    .msg.user {
+      color: blue;
+    }
+    .msg.agent {
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <h1>Genesys Headless Chat</h1>
+
+  <button id="startBtn" onclick="resetAndConfigure()" disabled>
+    Start or Resume Conversation
+  </button>
+  <button onclick="endConversation()">End Conversation</button>
+
+  <div id="chatWindow">
+    <strong>Conversation:</strong>
+    <div id="messages"></div>
+  </div>
+
+  <div>
+    <input id="messageInput" placeholder="Type your message" style="width: 220px;" />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       // Load Genesys bootstrap
@@ -29,11 +69,29 @@
         }
       );
 
+      // Enable start button when ready
       Genesys("subscribe", "MessagingService.ready", function () {
         console.log("✅ MessagingService.ready");
         document.getElementById("startBtn").disabled = false;
       });
+
+      // Subscribe to incoming messages
+      Genesys("subscribe", "MessagingService.messageReceived", function (event) {
+        console.log("📩 Message received:", event);
+
+        const messagesDiv = document.getElementById("messages");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "msg agent";
+        msgDiv.textContent = `Agent: ${event.message.text}`;
+        messagesDiv.appendChild(msgDiv);
+        scrollChatToBottom();
+      });
     });
+
+    function scrollChatToBottom() {
+      const chatWindow = document.getElementById("chatWindow");
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
 
     function resetAndConfigure(retry = false) {
       console.log("🔄 Clearing conversation…");
@@ -44,8 +102,7 @@
         },
         function (err) {
           console.warn("⚠️ clearConversation error:", err);
-          // Still try to configure even if clear fails
-          configureConversation(retry);
+          configureConversation(retry); // still try to configure
         }
       );
     }
@@ -65,7 +122,7 @@
         function (err) {
           console.error("❌ configureConversation error:", err);
           if (!retry) {
-            console.log("🔁 Retrying clear+configure one more time...");
+            console.log("🔁 Retrying clear+configure once...");
             resetAndConfigure(true);
           } else {
             console.error("❌ Retry failed. Giving up.");
@@ -94,6 +151,15 @@
       Genesys("command", "MessagingService.sendMessage", { text },
         function (resp) {
           console.log("✉️ Message sent:", resp);
+
+          const messagesDiv = document.getElementById("messages");
+          const msgDiv = document.createElement("div");
+          msgDiv.className = "msg user";
+          msgDiv.textContent = `You: ${text}`;
+          messagesDiv.appendChild(msgDiv);
+
+          document.getElementById("messageInput").value = "";
+          scrollChatToBottom();
         },
         function (err) {
           console.error("❌ sendMessage error:", err);
@@ -112,18 +178,5 @@
       );
     }
   </script>
-</head>
-<body>
-  <h1>Genesys Headless (Callback Only - Final Fix)</h1>
-
-  <button id="startBtn" onclick="resetAndConfigure()" disabled>
-    Start or Resume Conversation
-  </button>
-  <button onclick="endConversation()">End Conversation</button>
-
-  <div style="margin-top:1em;">
-    <input id="messageInput" placeholder="Type your message" style="width:300px;" />
-    <button onclick="sendMessage()">Send Message</button>
-  </div>
 </body>
 </html>
