@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genesys Messenger Headless Mode</title>
+
   <script type="text/javascript" charset="utf-8">
     document.addEventListener("DOMContentLoaded", function() {
       (function(g, e, n, es, ys) {
@@ -22,34 +25,87 @@
       });
     });
 
-    function startConversation() {
+    // Function to handle conversations
+    function handleConversation() {
       Genesys("subscribe", "MessagingService.ready", function() {
-        // Clear existing sessions first
-        Genesys("command", "MessagingService.clearConversation", {},
-          function() {
-            // Start new conversation after clearing
-            Genesys("command", "MessagingService.startConversation", { channel: { type: "web" } },
-              function(response) {
-                if (response?.conversationId) {
-                  console.log("Conversation ID:", response.conversationId);
-                } else {
-                  console.error("Invalid response:", response);
-                }
-              },
-              function(error) {
-                console.error("Start conversation error:", error);
-              }
-            );
+        console.log("Messaging Service is ready");
+
+        // Check for existing conversation
+        Genesys("command", "MessagingService.configureConversation", {},
+          function(response) {
+            console.log("Conversation configured:", response);
+
+            if (response.newSession === false) {
+              console.log("An active conversation already exists.");
+              // Optionally proceed with the active conversation
+            } else if (response.newSession === true) {
+              console.log("No active conversation. Starting a new session...");
+              startNewConversation();
+            } else {
+              console.error("Unexpected response from configureConversation:", response);
+            }
           },
           function(error) {
-            console.error("Clear conversation error:", error);
+            console.error("Error configuring conversation:", error);
+
+            // Handle case where an active conversation exists but needs to be cleared
+            if (error.message.includes("There is already an active conversation")) {
+              console.log("Clearing existing conversation...");
+              clearExistingConversation();
+            }
           }
         );
       });
     }
+
+    // Function to start a new conversation
+    function startNewConversation() {
+      Genesys("command", "MessagingService.startConversation", { channel: { type: "web" } },
+        function(response) {
+          console.log("New conversation started:", response.conversationId);
+        },
+        function(error) {
+          console.error("Error starting conversation:", error);
+        }
+      );
+    }
+
+    // Function to clear an existing conversation
+    function clearExistingConversation() {
+      Genesys("command", "MessagingService.clearConversation", {},
+        function(response) {
+          console.log("Existing conversation cleared successfully.");
+          // Start a new conversation after clearing
+          startNewConversation();
+        },
+        function(error) {
+          console.error("Error clearing existing conversation:", error);
+        }
+      );
+    }
+
+    // Function to send a message in the current session
+    function sendMessage() {
+      const messageText = document.getElementById("messageInput").value;
+
+      Genesys("command", "MessagingService.sendMessage", { text: messageText },
+        function(response) {
+          console.log("Message sent successfully:", response);
+        },
+        function(error) {
+          console.error("Error sending message:", error);
+        }
+      );
+    }
   </script>
 </head>
 <body>
-  <button onclick="startConversation()">Start Conversation</button>
+  <h1>Genesys Messenger Headless Mode</h1>
+  <button onclick="handleConversation()">Start or Resume Conversation</button>
+  <button onclick="clearExistingConversation()">End Conversation</button>
+  <div>
+    <input id="messageInput" type="text" placeholder="Type your message">
+    <button onclick="sendMessage()">Send Message</button>
+  </div>
 </body>
 </html>
