@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Genesys Headless Chat - Full Config</title>
+  <title>Genesys Headless Chat</title>
   <style>
     body { font-family: Arial, sans-serif; }
     #chatWindow {
@@ -39,49 +39,7 @@
     let isConversationActive = false;
 
     document.addEventListener("DOMContentLoaded", function () {
-      // Full Deployment Config
-      const deploymentConfig = {
-        id: "52f242c7-8771-4368-b20b-2929a715fedb", // Replace with your deploymentId,
-        environment: 'prod-cac1',
-        version: 1,
-        languages: ["en-us"],
-        defaultLanguage: "en-us",
-        apiEndpoint: "https://cac1.pure.cloud", // Replace with your Genesys region
-        headlessMode: {
-          enabled: true
-        },
-        messenger: {
-          enabled: true,
-          apps: {
-            conversations: {
-              messagingEndpoint: "https://messaging.cac1.pure.cloud", // Adjust for your region
-              showAgentTypingIndicator: true,
-              showUserTypingIndicator: true,
-              autoStart: {
-                enabled: false
-              }
-            }
-          },
-          fileUpload: {
-            enableAttachments: false,
-            modes: [
-              {
-                fileTypes: ["image/png", "image/jpeg", "application/pdf"],
-                maxFileSizeKB: 5120
-              }
-            ]
-          }
-        },
-        journeyEvents: {
-          enabled: false
-        },
-        auth: {
-          enabled: false
-        },
-        status: "Published"
-      };
-
-      // Load Genesys SDK
+      // ✅ Correct loader with minimal required config
       (function (g, e, n, es) {
         g["_genesysJs"] = e;
         g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
@@ -95,11 +53,19 @@
       })(
         window,
         "Genesys",
-        "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js", // Match your region
-        deploymentConfig
+        "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js", // ✅ Change this if you're in another region
+        {
+          deploymentId: "52f242c7-8771-4368-b20b-2929a715fedb", // ✅ Your actual deployment ID
+          environment: "prod-cac1",                 // ✅ Your region (e.g., prod.cac1.pure.cloud for Canada)
+          debug: true,
+          messenger: {
+            headlessMode: true,
+            autoStart: false
+          }
+        }
       );
 
-      Genesys("subscribe", "MessagingService.ready", () => {
+      Genesys("subscribe", "MessagingService.ready", function () {
         console.log("✅ MessagingService.ready");
         document.getElementById("startBtn").disabled = false;
       });
@@ -110,9 +76,13 @@
         const messagesDiv = document.getElementById("messages");
         const msgDiv = document.createElement("div");
         msgDiv.className = "msg agent";
-        msgDiv.textContent = event.message?.text
-          ? `Agent: ${event.message.text}`
-          : `Agent sent: ${JSON.stringify(event.message)}`;
+
+        if (event.message?.text) {
+          msgDiv.textContent = `Agent: ${event.message.text}`;
+        } else {
+          msgDiv.textContent = `Agent sent: ${JSON.stringify(event.message)}`;
+        }
+
         messagesDiv.appendChild(msgDiv);
         scrollChatToBottom();
       });
@@ -181,12 +151,12 @@
     function sendMessage() {
       const text = document.getElementById("messageInput").value.trim();
       if (!text || !isConversationActive) {
-        alert("⚠️ Cannot send: conversation is not active or message is empty.");
+        alert("⚠️ Cannot send: conversation not active or message is empty.");
         return;
       }
 
       Genesys("command", "MessagingService.sendMessage", {
-        message: { text }
+        message: { text } // ✅ Correct format
       },
         (resp) => {
           console.log("✉️ Message sent:", resp);
@@ -195,6 +165,7 @@
           msgDiv.className = "msg user";
           msgDiv.textContent = `You: ${text}`;
           messagesDiv.appendChild(msgDiv);
+
           document.getElementById("messageInput").value = "";
           scrollChatToBottom();
         },
