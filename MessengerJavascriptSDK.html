@@ -37,31 +37,38 @@
     });
 
     // 3) Configure / resume
-    function handleConversation() {
-      Genesys("command", "MessagingService.configureConversation", {})
-        .then(response => {
-          console.log("⚙️ configureConversation →", response);
+function handleConversation() {
+  Genesys("command", "MessagingService.configureConversation", {})
+    .then(response => {
+      console.log("⚙️ configureConversation →", response);
+      if (response.isSessionActive) {
+        console.log("▶️ Resuming:", response.conversationId);
+      } else {
+        console.log("🆕 No active session; starting new");
+        startNewConversation();
+      }
+    })
+    .catch(error => {
+      // More verbose logging:
+      console.error("❌ configureConversation failed:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        toString: error.toString(),
+        raw: error
+      });
 
-          if (response.isSessionActive) {
-            console.log("▶️ Resuming:", response.conversationId);
-          } else {
-            console.log("🆕 No active session; starting new");
-            startNewConversation();
-          }
-        })
-        .catch(error => {
-          console.error("❌ configureConversation failed:", error);
-
-          // auto‑clear on this specific message
-          if (
-            error.message === "There is already an active conversation." ||
-            error.toString().includes("already an active conversation")
-          ) {
-            console.log("🔄 Clearing existing conversation…");
-            clearExistingConversation();
-          }
-        });
-    }
+      // Try to detect the “already active” case in multiple ways:
+      const errStr = error.toString();
+      if (
+        errStr.includes("already an active conversation") ||
+        errStr.includes("active conversation")
+      ) {
+        console.log("🔄 Clearing existing conversation…");
+        clearExistingConversation();
+      }
+    });
+}
 
     // 4) Clear
     function clearExistingConversation() {
