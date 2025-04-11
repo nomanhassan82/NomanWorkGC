@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless (Promise‑only)</title>
+  <title>Genesys Headless (Promise‑only with Verbose Error Logging)</title>
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       // 1) Inject Genesys bootstrap
@@ -29,48 +29,43 @@
         }
       );
 
-      // 2) Subscribe to ready
+      // 2) Enable start button once ready
       Genesys("subscribe", "MessagingService.ready", () => {
         console.log("✅ MessagingService.ready");
         document.getElementById("startBtn").disabled = false;
       });
     });
 
-    // 3) Configure / resume
-function handleConversation() {
-  Genesys("command", "MessagingService.configureConversation", {})
-    .then(response => {
-      console.log("⚙️ configureConversation →", response);
-      if (response.isSessionActive) {
-        console.log("▶️ Resuming:", response.conversationId);
-      } else {
-        console.log("🆕 No active session; starting new");
-        startNewConversation();
-      }
-    })
-    .catch(error => {
-      // More verbose logging:
-      console.error("❌ configureConversation failed:", {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
-        toString: error.toString(),
-        raw: error
-      });
+    // 3) Configure / resume with verbose error logging
+    function handleConversation() {
+      Genesys("command", "MessagingService.configureConversation", {})
+        .then(response => {
+          console.log("⚙️ configureConversation →", response);
+          if (response.isSessionActive) {
+            console.log("▶️ Resuming existing conversation:", response.conversationId);
+          } else {
+            console.log("🆕 No active session; starting a new one");
+            startNewConversation();
+          }
+        })
+        .catch(error => {
+          console.error("❌ configureConversation failed:", {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            toString: error.toString(),
+            raw: error
+          });
 
-      // Try to detect the “already active” case in multiple ways:
-      const errStr = error.toString();
-      if (
-        errStr.includes("already an active conversation") ||
-        errStr.includes("active conversation")
-      ) {
-        console.log("🔄 Clearing existing conversation…");
-        clearExistingConversation();
-      }
-    });
-}
+          const errStr = error.toString();
+          if (errStr.includes("already an active conversation")) {
+            console.log("🔄 Detected active‑conversation error; clearing conversation…");
+            clearExistingConversation();
+          }
+        });
+    }
 
-    // 4) Clear
+    // 4) Clear then start fresh
     function clearExistingConversation() {
       Genesys("command", "MessagingService.clearConversation", {})
         .then(() => {
@@ -82,7 +77,7 @@ function handleConversation() {
         });
     }
 
-    // 5) Start
+    // 5) Start a new conversation
     function startNewConversation() {
       return Genesys("command", "MessagingService.startConversation", { channel: { type: "web" } })
         .then(resp => {
@@ -93,7 +88,7 @@ function handleConversation() {
         });
     }
 
-    // 6) Send
+    // 6) Send a message
     function sendMessage() {
       const text = document.getElementById("messageInput").value;
       if (!text) return;
@@ -109,7 +104,7 @@ function handleConversation() {
   </script>
 </head>
 <body>
-  <h1>Genesys Headless (Promise‑only)</h1>
+  <h1>Genesys Headless (Promise‑only with Verbose Error Logging)</h1>
 
   <button id="startBtn" onclick="handleConversation()" disabled>
     Start or Resume Conversation
