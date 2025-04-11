@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless (Safe + Promise-based)</title>
+  <title>Genesys Headless (Callback Only - Final Fix)</title>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       // Load Genesys bootstrap
@@ -35,77 +35,86 @@
       });
     });
 
-    // Reset (clear) then configure conversation
-    async function resetAndConfigure(retry = false) {
-      try {
-        console.log("🔄 Clearing any existing conversation…");
-        await Genesys("command", "MessagingService.clearConversation", {});
-      } catch (e) {
-        console.warn("⚠️ clearConversation failed (might be ok):", e);
-      }
-
-      try {
-        console.log("⚙️ Configuring conversation…");
-        const resp = await Genesys("command", "MessagingService.configureConversation", {});
-        console.log("✅ configureConversation raw response:", resp);
-
-        if (!resp || typeof resp !== "object") {
-          console.warn("⚠️ Invalid response from configureConversation:", resp);
-          throw new Error("Invalid response from configureConversation");
+    function resetAndConfigure(retry = false) {
+      console.log("🔄 Clearing conversation…");
+      Genesys("command", "MessagingService.clearConversation", {},
+        function () {
+          console.log("✅ Conversation cleared");
+          configureConversation(retry);
+        },
+        function (err) {
+          console.warn("⚠️ clearConversation error:", err);
+          // Still try to configure even if clear fails
+          configureConversation(retry);
         }
-
-        if (resp.isSessionActive) {
-          console.log("▶️ Resuming conversation:", resp.conversationId);
-        } else {
-          console.log("🆕 No active session; starting a new one");
-          await startNewConversation();
-        }
-      } catch (err) {
-        console.error("❌ configureConversation error:", err);
-        if (!retry) {
-          console.log("🔁 Retrying reset+configure once…");
-          resetAndConfigure(true);
-        } else {
-          console.error("❌ Retry failed. Giving up.");
-        }
-      }
+      );
     }
 
-    async function startNewConversation() {
-      try {
-        const response = await Genesys("command", "MessagingService.startConversation", {
-          channel: { type: "web" },
-        });
-        console.log("✅ startConversation:", response);
-      } catch (err) {
-        console.error("❌ startConversation error:", err);
-      }
+    function configureConversation(retry) {
+      console.log("⚙️ Configuring conversation…");
+      Genesys("command", "MessagingService.configureConversation", {},
+        function (resp) {
+          console.log("✅ configureConversation response:", resp);
+          if (resp && resp.isSessionActive) {
+            console.log("▶️ Resuming conversation:", resp.conversationId);
+          } else {
+            console.log("🆕 No active session. Starting new one…");
+            startNewConversation();
+          }
+        },
+        function (err) {
+          console.error("❌ configureConversation error:", err);
+          if (!retry) {
+            console.log("🔁 Retrying clear+configure one more time...");
+            resetAndConfigure(true);
+          } else {
+            console.error("❌ Retry failed. Giving up.");
+          }
+        }
+      );
     }
 
-    async function sendMessage() {
+    function startNewConversation() {
+      Genesys("command", "MessagingService.startConversation", {
+        channel: { type: "web" }
+      },
+        function (resp) {
+          console.log("✅ Conversation started:", resp);
+        },
+        function (err) {
+          console.error("❌ startConversation error:", err);
+        }
+      );
+    }
+
+    function sendMessage() {
       const text = document.getElementById("messageInput").value;
       if (!text) return;
 
-      try {
-        const resp = await Genesys("command", "MessagingService.sendMessage", { text });
-        console.log("✉️ Message sent:", resp);
-      } catch (err) {
-        console.error("❌ sendMessage error:", err);
-      }
+      Genesys("command", "MessagingService.sendMessage", { text },
+        function (resp) {
+          console.log("✉️ Message sent:", resp);
+        },
+        function (err) {
+          console.error("❌ sendMessage error:", err);
+        }
+      );
     }
 
-    async function endConversation() {
-      try {
-        await Genesys("command", "MessagingService.clearConversation", {});
-        console.log("🛑 Conversation ended.");
-      } catch (err) {
-        console.error("❌ endConversation error:", err);
-      }
+    function endConversation() {
+      Genesys("command", "MessagingService.clearConversation", {},
+        function () {
+          console.log("🛑 Conversation ended.");
+        },
+        function (err) {
+          console.error("❌ endConversation error:", err);
+        }
+      );
     }
   </script>
 </head>
 <body>
-  <h1>Genesys Headless (Safe + Promise-based)</h1>
+  <h1>Genesys Headless (Callback Only - Final Fix)</h1>
 
   <button id="startBtn" onclick="resetAndConfigure()" disabled>
     Start or Resume Conversation
