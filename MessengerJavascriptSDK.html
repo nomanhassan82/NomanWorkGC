@@ -66,7 +66,7 @@
         "Genesys",
         "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js",
         {
-          deploymentId: "52f242c7-8771-4368-b20b-2929a715fedb",
+          deploymentId: "52f242c7-8771-4368-b20b-2929a715fedb", // Replace with yours
           environment: "prod-cac1",
           messenger: { headlessMode: true },
           debug: true,
@@ -79,15 +79,37 @@
         document.getElementById("startBtn").disabled = false;
       });
 
-      // Handle incoming messages
+      // Subscribe to messageReceived
       Genesys("subscribe", "MessagingService.messageReceived", function (event) {
         console.log("📩 Message received:", event);
+
         const messagesDiv = document.getElementById("messages");
         const msgDiv = document.createElement("div");
         msgDiv.className = "msg agent";
-        msgDiv.textContent = `Agent: ${event.message.text}`;
+
+        if (event.message?.text) {
+          msgDiv.textContent = `Agent: ${event.message.text}`;
+        } else if (event.message?.type === "Structured") {
+          msgDiv.textContent = `Agent sent structured content`;
+        } else {
+          msgDiv.textContent = `Agent sent: ${JSON.stringify(event.message)}`;
+        }
+
         messagesDiv.appendChild(msgDiv);
         scrollChatToBottom();
+      });
+
+      // Optional: extra debugging
+      Genesys("subscribe", "MessagingService.error", function (e) {
+        console.error("⚠️ MessagingService error:", e);
+      });
+
+      Genesys("subscribe", "MessagingService.conversationStarted", function (e) {
+        console.log("🟢 conversationStarted:", e);
+      });
+
+      Genesys("subscribe", "MessagingService.agentJoined", function (e) {
+        console.log("👤 Agent joined:", e);
       });
     });
 
