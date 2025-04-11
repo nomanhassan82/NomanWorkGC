@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless (Promise‑based)</title>
+  <title>Genesys Headless (Callback)</title>
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // 1) Inject bootstrap
-      (function(g,e,n,es){
+      // 1) Inject the Genesys bootstrap script
+      (function(g, e, n, es) {
         g['_genesysJs'] = e;
-        g[e] = g[e]||function(){(g[e].q=g[e].q||[]).push(arguments)};
+        g[e] = g[e] || function() { (g[e].q = g[e].q || []).push(arguments); };
         g[e].t = +new Date();
         g[e].c = es;
         var s = document.createElement('script');
@@ -29,64 +29,108 @@
         }
       );
 
-      // 2) Subscribe immediately
-      Genesys("subscribe", "MessagingService.ready", () => {
+      // 2) Subscribe right away to MessagingService.ready
+      Genesys("subscribe", "MessagingService.ready", function() {
         console.log("✅ MessagingService.ready");
         document.getElementById("startBtn").disabled = false;
       });
     });
 
+    // 3) Configure or start/resume
     function handleConversation() {
-      Genesys("command", "MessagingService.configureConversation", {})
-        .then(response => {
-          console.log("⚙️ configureConversation →", response);
+      Genesys(
+        "command",
+        "MessagingService.configureConversation",
+        {},
+        function(response) {
+          console.log("⚙️ configureConversation raw response:", response);
+
+          // Make absolutely sure response is defined
+          if (!response) {
+            console.error("❌ configureConversation callback invoked with undefined response");
+            return;
+          }
+
+          // Use the documented flag
           if (response.isSessionActive) {
             console.log("▶️ Resuming:", response.conversationId);
           } else {
-            console.log("🆕 Starting new conversation");
+            console.log("🆕 No active session; starting new one");
             startNewConversation();
           }
-        })
-        .catch(error => {
-          console.error("❌ configureConversation failed:", error);
-          if (error.message && error.message.includes("already an active conversation")) {
+        },
+        function(error) {
+          console.error("❌ configureConversation error:", error);
+          if (error && error.message && error.message.includes("already an active conversation")) {
             clearExistingConversation();
           }
-        });
+        }
+      );
     }
 
+    // 4) Start a new conversation
     function startNewConversation() {
-      Genesys("command", "MessagingService.startConversation", { channel: { type: "web" } })
-        .then(resp => console.log("✅ New conversation:", resp.conversationId))
-        .catch(err => console.error("❌ startConversation failed:", err));
+      Genesys(
+        "command",
+        "MessagingService.startConversation",
+        { channel: { type: "web" } },
+        function(response) {
+          console.log("✅ New conversation started:", response.conversationId);
+        },
+        function(error) {
+          console.error("❌ startConversation error:", error);
+        }
+      );
     }
 
+    // 5) Clear any existing conversation
     function clearExistingConversation() {
-      Genesys("command", "MessagingService.clearConversation", {})
-        .then(() => {
-          console.log("✅ Cleared existing conversation");
+      Genesys(
+        "command",
+        "MessagingService.clearConversation",
+        {},
+        function(response) {
+          console.log("✅ clearConversation response:", response);
           startNewConversation();
-        })
-        .catch(err => console.error("❌ clearConversation failed:", err));
+        },
+        function(error) {
+          console.error("❌ clearConversation error:", error);
+        }
+      );
     }
 
+    // 6) Send a message
     function sendMessage() {
-      const text = document.getElementById("messageInput").value;
+      var text = document.getElementById("messageInput").value;
       if (!text) return;
-      Genesys("command", "MessagingService.sendMessage", { text })
-        .then(resp => console.log("✉️ Sent:", resp))
-        .catch(err => console.error("❌ sendMessage failed:", err));
+
+      Genesys(
+        "command",
+        "MessagingService.sendMessage",
+        { text: text },
+        function(response) {
+          console.log("✉️ sendMessage response:", response);
+        },
+        function(error) {
+          console.error("❌ sendMessage error:", error);
+        }
+      );
     }
   </script>
 </head>
 <body>
-  <h1>Genesys Headless (Promise‑based)</h1>
+  <h1>Genesys Headless (Callback)</h1>
+
   <button id="startBtn" onclick="handleConversation()" disabled>
     Start or Resume Conversation
   </button>
-  <button onclick="clearExistingConversation()">End Conversation</button>
+
+  <button onclick="clearExistingConversation()">
+    End Conversation
+  </button>
+
   <div style="margin-top:1em;">
-    <input id="messageInput" placeholder="Type your message" style="width:300px;"/>
+    <input id="messageInput" placeholder="Type your message" style="width:300px;" />
     <button onclick="sendMessage()">Send Message</button>
   </div>
 </body>
