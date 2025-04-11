@@ -3,19 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless (Callbacks Only)</title>
+  <title>Genesys Headless (Always Clear First)</title>
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // 1) Inject the Genesys bootstrap
-      (function(g, e, n, es) {
-        g['_genesysJs'] = e;
-        g[e] = g[e] || function() { (g[e].q = g[e].q || []).push(arguments); };
-        g[e].t = +new Date();
-        g[e].c = es;
-        var s = document.createElement('script');
-        s.async = true;
-        s.src = n;
-        s.charset = 'utf-8';
+      // Inject bootstrap
+      (function(g,e,n,es){
+        g['_genesysJs']=e;
+        g[e]=g[e]||function(){(g[e].q=g[e].q||[]).push(arguments)};
+        g[e].t=+new Date();
+        g[e].c=es;
+        var s=document.createElement('script');
+        s.async=true; s.src=n; s.charset='utf-8';
         document.head.appendChild(s);
       })(
         window,
@@ -29,111 +27,102 @@
         }
       );
 
-      // 2) Enable start button once MessagingService.ready fires
       Genesys("subscribe", "MessagingService.ready", function() {
         console.log("✅ MessagingService.ready");
         document.getElementById("startBtn").disabled = false;
       });
     });
 
-    // 3) Configure or resume conversation
-    function handleConversation() {
-      Genesys(
-        "command",
-        "MessagingService.configureConversation",
-        {},
-        function(response) {
-          console.log("⚙️ configureConversation response:", response);
-          if (!response) {
-            console.error("❌ No response from configureConversation");
-            return;
-          }
-          if (response.isSessionActive) {
-            console.log("▶️ Resuming:", response.conversationId);
-          } else {
-            console.log("🆕 No active session; starting new");
-            startNewConversation();
-          }
-        },
-        function(error) {
-          console.error("❌ configureConversation error:", error);
-          if (
-            error &&
-            error.message &&
-            error.message.includes("already an active conversation")
-          ) {
-            console.log("🔄 Clearing existing conversation…");
-            clearExistingConversation();
-          }
-        }
-      );
-    }
-
-    // 4) Clear existing conversation
-    function clearExistingConversation() {
+    // Master reset + configure
+    function resetAndConfigure(retry = false) {
+      console.log("🔄 Clearing any existing conversation…");
       Genesys(
         "command",
         "MessagingService.clearConversation",
         {},
-        function(response) {
-          console.log("✅ clearConversation response:", response);
-          startNewConversation();
+        function(clearResp) {
+          console.log("✅ clearConversation:", clearResp);
+          configureConversation(retry);
         },
-        function(error) {
-          console.error("❌ clearConversation error:", error);
+        function(clearErr) {
+          console.error("❌ clearConversation error:", clearErr);
+          // Even if clear fails, still try configure once
+          configureConversation(retry);
         }
       );
     }
 
-    // 5) Start a new conversation
+    function configureConversation(retry) {
+      console.log("⚙️ Configuring conversation…");
+      Genesys(
+        "command",
+        "MessagingService.configureConversation",
+        {},
+        function(resp) {
+          console.log("✅ configureConversation:", resp);
+          if (resp.isSessionActive) {
+            console.log("▶️ Resuming:", resp.conversationId);
+          } else {
+            console.log("🆕 Starting new conversation");
+            startNewConversation();
+          }
+        },
+        function(err) {
+          console.error("❌ configureConversation error:", err);
+          // If we haven’t retried yet, clear+retry one more time
+          if (!retry) {
+            console.log("🔄 Retrying clear+configure one more time…");
+            resetAndConfigure(true);
+          } else {
+            console.error("⚠️ Still failing after retry. Giving up.");
+          }
+        }
+      );
+    }
+
     function startNewConversation() {
       Genesys(
         "command",
         "MessagingService.startConversation",
         { channel: { type: "web" } },
-        function(response) {
-          console.log("✅ startConversation response:", response);
+        function(resp) {
+          console.log("✅ startConversation:", resp);
         },
-        function(error) {
-          console.error("❌ startConversation error:", error);
+        function(err) {
+          console.error("❌ startConversation error:", err);
         }
       );
     }
 
-    // 6) Send a message (callbacks only—no .then!)
     function sendMessage() {
       var text = document.getElementById("messageInput").value;
       if (!text) return;
-
       Genesys(
         "command",
         "MessagingService.sendMessage",
         { text: text },
-        function(response) {
-          console.log("✉️ sendMessage response:", response);
+        function(resp) {
+          console.log("✉️ sendMessage:", resp);
         },
-        function(error) {
-          console.error("❌ sendMessage error:", error);
+        function(err) {
+          console.error("❌ sendMessage error:", err);
         }
       );
     }
   </script>
 </head>
 <body>
-  <h1>Genesys Headless (Callbacks Only)</h1>
+  <h1>Genesys Headless (Always Clear First)</h1>
 
-  <button id="startBtn" onclick="handleConversation()" disabled>
+  <button id="startBtn" onclick="resetAndConfigure()" disabled>
     Start or Resume Conversation
   </button>
-  <button onclick="clearExistingConversation()">End Conversation</button>
+  <button onclick="Genesys('command','MessagingService.clearConversation',{},console.log,console.error)">
+    End Conversation
+  </button>
 
   <div style="margin-top:1em;">
-    <input
-      id="messageInput"
-      type="text"
-      placeholder="Type your message"
-      style="width:300px;"
-    />
+    <input id="messageInput" placeholder="Type your message" style="width:300px;"/>
     <button onclick="sendMessage()">Send Message</button>
   </div>
 </body>
