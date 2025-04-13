@@ -7,239 +7,384 @@
   <style>
     body {
       font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 30px auto;
     }
     #chatWindow {
       border: 1px solid #ccc;
       padding: 10px;
-      width: 320px;
-      height: 250px;
+      height: 300px;
       overflow-y: auto;
       background: #f9f9f9;
       margin-top: 10px;
     }
     .msg {
       margin: 5px 0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      max-width: 80%;
+      word-wrap: break-word;
     }
     .msg.user {
-      color: blue;
+      background-color: #e0f0ff;
+      align-self: flex-end;
+      color: #0074cc;
+      text-align: right;
     }
     .msg.agent {
-      color: green;
+      background-color: #e8ffe8;
+      align-self: flex-start;
+      color: #2e7d32;
+    }
+    .msg.system {
+      background-color: #f5f5f5;
+      color: #666;
+      font-style: italic;
+      text-align: center;
+      font-size: 0.9em;
+    }
+    #chatContainer {
+      display: flex;
+      flex-direction: column;
+    }
+    #inputArea {
+      margin-top: 10px;
+      display: flex;
+      gap: 5px;
+    }
+    #messageInput {
+      flex-grow: 1;
+      padding: 6px;
+    }
+    #statusIndicator {
+      margin: 5px 0;
+      padding: 5px;
+      text-align: center;
+      font-size: 0.9em;
+      border-radius: 4px;
+    }
+    .status-connecting {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    .status-connected {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .status-disconnected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(0,0,0,.3);
+      border-radius: 50%;
+      border-top-color: #000;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <h1>Genesys Headless Chat</h1>
+  <h2>Genesys Headless Chat</h2>
+
+  <div id="statusIndicator" class="status-disconnected">Disconnected</div>
 
   <button id="startBtn" onclick="resetAndConfigure()" disabled>
-    Start or Resume Conversation
+    <span id="startBtnText">Start or Resume Conversation</span>
   </button>
-  <button onclick="endConversation()">End Conversation</button>
+  <button id="endBtn" onclick="endConversation()" disabled>End Conversation</button>
 
   <div id="chatWindow">
-    <strong>Conversation:</strong>
-    <div id="messages"></div>
+    <div id="chatContainer"></div>
   </div>
 
-  <div>
-    <input id="messageInput" placeholder="Type your message" style="width: 220px;" />
-    <button onclick="sendMessage()">Send</button>
+  <div id="inputArea">
+    <input id="messageInput" placeholder="Type a message..." disabled />
+    <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
   </div>
 
   <script>
     let isConversationActive = false;
-    let socket;
+    let conversationTimeout = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
 
-    function connectWebSocket() {
-      const socketUrl = "wss://webmessaging.cac1.pure.cloud/v1";
-      socket = new WebSocket(socketUrl);
-
-      socket.onopen = () => {
-        console.log("🔌 WebSocket connected to Genesys endpoint.");
-      };
-
-      socket.onmessage = (event) => {
-        console.log("📨 WebSocket message received:", event.data);
-      };
-
-      socket.onerror = (error) => {
-        console.error("❌ WebSocket error:", error);
-      };
-
-      socket.onclose = (event) => {
-        console.warn("🔌 WebSocket closed:", event.code, event.reason);
-      };
-    }
-
-    document.addEventListener("DOMContentLoaded", function () {
-      connectWebSocket();
-
-      // Load Genesys bootstrap
-      (function (g, e, n, es) {
-        g["_genesysJs"] = e;
-        g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
-        g[e].t = +new Date();
-        g[e].c = es;
-        var s = document.createElement("script");
-        s.async = true;
-        s.src = n;
-        s.charset = "utf-8";
-        document.head.appendChild(s);
-      })(
-        window,
-        "Genesys",
-        "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js",
-        {
-          deploymentId: "52f242c7-8771-4368-b20b-2929a715fedb", // Replace with your deploymentId
-          environment: "cac1",
-          messenger: { headlessMode: true },
-          debug: true,
+    // Load Genesys SDK
+    (function (g, e, n, es) {
+      g["_genesysJs"] = e;
+      g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
+      g[e].t = +new Date();
+      g[e].c = es;
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = n;
+      s.charset = "utf-8";
+      document.head.appendChild(s);
+    })(
+      window,
+      "Genesys",
+      "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js",
+      {
+        deploymentId: "4411676a-d200-478c-8adc-1312bb86bb84", // Replace with your deploymentId
+        environment: "prod-cac1",
+        messenger: { headlessMode: true },
+        debug: {
+          enabled: true,
+          level: 'verbose'
         }
-      );
+      }
+    );
 
-      Genesys("subscribe", "MessagingService.ready", function () {
-        console.log("✅ MessagingService.ready");
-        document.getElementById("startBtn").disabled = false;
-      });
-
-      Genesys("subscribe", "MessagingService.messageReceived", function (event) {
-        console.log("📩 Message received:", event);
-
-        const messagesDiv = document.getElementById("messages");
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "msg agent";
-
-        if (event.message?.text) {
-          msgDiv.textContent = `Agent: ${event.message.text}`;
-        } else if (event.message?.type === "Structured") {
-          msgDiv.textContent = `Agent sent structured content`;
-        } else {
-          msgDiv.textContent = `Agent sent: ${JSON.stringify(event.message)}`;
-        }
-
-        messagesDiv.appendChild(msgDiv);
-        scrollChatToBottom();
-      });
-
-      Genesys("subscribe", "MessagingService.conversationStarted", function (e) {
-        console.log("🟢 conversationStarted:", e);
-      });
-
-      Genesys("subscribe", "MessagingService.agentJoined", function (e) {
-        console.log("👤 Agent joined:", e);
-      });
-
-      Genesys("subscribe", "MessagingService.error", function (e) {
-        console.error("⚠️ MessagingService error:", e);
-      });
+    // SDK ready
+    Genesys("subscribe", "MessagingService.ready", () => {
+      console.log("✅ MessagingService.ready");
+      document.getElementById("startBtn").disabled = false;
+      updateStatus("SDK Ready", "status-disconnected");
     });
 
+    // Message received from agent
+    Genesys("subscribe", "MessagingService.messageReceived", (event) => {
+      console.log("📩 Message received:", event);
+
+      const container = document.getElementById("chatContainer");
+      const div = document.createElement("div");
+      div.className = "msg agent";
+
+      if (event.message?.text) {
+        div.textContent = `Agent: ${event.message.text}`;
+      } else {
+        div.textContent = `[Agent sent structured or non-text message]`;
+      }
+
+      container.appendChild(div);
+      scrollChatToBottom();
+    });
+
+    // Conversation started event
+    Genesys("subscribe", "MessagingService.conversationStarted", (e) => {
+      console.log("🟢 conversationStarted (event):", e);
+      isConversationActive = true;
+      updateStatus("Connected to Agent", "status-connected");
+      enableChatUI(true);
+      retryCount = 0; // Reset retry counter on success
+    });
+
+    // Conversation ended event
+    Genesys("subscribe", "MessagingService.conversationEnded", (e) => {
+      console.log("🔴 conversationEnded (event):", e);
+      isConversationActive = false;
+      updateStatus("Conversation Ended", "status-disconnected");
+      enableChatUI(false);
+      addSystemMessage("Conversation has ended");
+    });
+
+    // Errors
+    Genesys("subscribe", "MessagingService.error", (e) => {
+      console.error("❌ SDK error:", e);
+      updateStatus("Error: " + (e.error?.message || "Unknown error"), "status-disconnected");
+    });
+
+    function updateStatus(message, statusClass) {
+      const statusElement = document.getElementById("statusIndicator");
+      statusElement.textContent = message;
+      statusElement.className = statusClass;
+    }
+
+    function addSystemMessage(text) {
+      const container = document.getElementById("chatContainer");
+      const div = document.createElement("div");
+      div.className = "msg system";
+      div.textContent = text;
+      container.appendChild(div);
+      scrollChatToBottom();
+    }
+
     function scrollChatToBottom() {
-      const chatWindow = document.getElementById("chatWindow");
-      chatWindow.scrollTop = chatWindow.scrollHeight;
+      const chat = document.getElementById("chatWindow");
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function enableChatUI(enabled) {
+      document.getElementById("messageInput").disabled = !enabled;
+      document.getElementById("sendBtn").disabled = !enabled;
+      document.getElementById("endBtn").disabled = !enabled;
     }
 
     function resetAndConfigure(retry = false) {
-      console.log("🔄 Clearing conversation…");
+      if (conversationTimeout) {
+        clearTimeout(conversationTimeout);
+        conversationTimeout = null;
+      }
+
+      console.log("🔄 Resetting and configuring conversation…");
+      updateStatus("Initializing connection...", "status-connecting");
+      
+      // Show loading state on button
+      const startBtn = document.getElementById("startBtn");
+      const startBtnText = document.getElementById("startBtnText");
+      startBtn.disabled = true;
+      startBtnText.innerHTML = '<span class="loading-spinner"></span> Connecting...';
+
       Genesys("command", "MessagingService.clearConversation", {},
-        function () {
-          console.log("✅ Conversation cleared");
+        () => {
+          console.log("✅ clearConversation done");
           configureConversation(retry);
         },
-        function (err) {
-          console.warn("⚠️ clearConversation error:", err);
+        (err) => {
+          console.warn("⚠️ clearConversation error (likely no session):", err);
           configureConversation(retry);
         }
       );
     }
 
     function configureConversation(retry) {
-      console.log("⚙️ Configuring conversation…");
       Genesys("command", "MessagingService.configureConversation", {},
-        function (resp) {
-          console.log("✅ configureConversation response:", resp);
+        (resp) => {
+          console.log("✅ configureConversation:", resp);
           if (resp && resp.isSessionActive) {
-            console.log("▶️ Resuming conversation:", resp.conversationId);
+            console.log("▶️ Resuming session:", resp.conversationId);
             isConversationActive = true;
+            updateStatus("Resumed existing conversation", "status-connected");
+            enableChatUI(true);
+            resetStartButton();
           } else {
-            console.log("🆕 No active session. Starting new one…");
             startNewConversation();
           }
         },
-        function (err) {
+        (err) => {
           console.error("❌ configureConversation error:", err);
-          if (!retry) {
-            console.log("🔁 Retrying clear+configure once...");
-            resetAndConfigure(true);
+          if (!retry && retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`🔁 Retrying configuration (attempt ${retryCount} of ${MAX_RETRIES})...`);
+            setTimeout(() => resetAndConfigure(true), 1000 * retryCount);
           } else {
-            console.error("❌ Retry failed. Giving up.");
+            updateStatus("Failed to connect", "status-disconnected");
+            resetStartButton();
+            alert("Failed to initialize chat. Please try again later.");
           }
         }
       );
     }
 
     function startNewConversation() {
-      Genesys("command", "MessagingService.startConversation", {
-        channel: { type: "web" }
-      },
-        function (resp) {
-          console.log("✅ Conversation started:", resp);
-          isConversationActive = true;
-        },
-        function (err) {
-          console.error("❌ startConversation error:", err);
-          alert("❌ Failed to start conversation. Check console for details.");
+      console.log("🚀 Attempting to start a new conversation...");
+      updateStatus("Starting new conversation...", "status-connecting");
+
+      conversationTimeout = setTimeout(() => {
+        if (!isConversationActive) {
+          console.warn("⏰ No response from startConversation after 5 seconds.");
+          updateStatus("Connection timeout", "status-disconnected");
+          resetStartButton();
+          
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`🔁 Retrying start (attempt ${retryCount} of ${MAX_RETRIES})...`);
+            setTimeout(() => resetAndConfigure(true), 1000 * retryCount);
+          } else {
+            alert("Failed to connect to chat service. Please try again later.");
+          }
         }
-      );
+      }, 5000);
+
+      try {
+        Genesys("command", "MessagingService.startConversation", {
+          channel: { type: "web" }
+        },
+        (resp) => {
+          clearTimeout(conversationTimeout);
+          console.log("✅ New conversation started:", resp);
+          isConversationActive = true;
+          updateStatus("Connected to Agent", "status-connected");
+          enableChatUI(true);
+          resetStartButton();
+          addSystemMessage("Conversation started with agent");
+        },
+        (err) => {
+          clearTimeout(conversationTimeout);
+          console.error("❌ startConversation error:", err);
+          updateStatus("Connection failed", "status-disconnected");
+          resetStartButton();
+          
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`🔁 Retrying start (attempt ${retryCount} of ${MAX_RETRIES})...`);
+            setTimeout(() => resetAndConfigure(true), 1000 * retryCount);
+          } else {
+            alert("❌ Failed to start conversation: " + (err.message || "Check console"));
+          }
+        });
+      } catch (e) {
+        clearTimeout(conversationTimeout);
+        console.error("💥 Exception during startConversation:", e);
+        updateStatus("Connection error", "status-disconnected");
+        resetStartButton();
+      }
+    }
+
+    function resetStartButton() {
+      const startBtn = document.getElementById("startBtn");
+      const startBtnText = document.getElementById("startBtnText");
+      startBtn.disabled = false;
+      startBtnText.textContent = isConversationActive ? "Reconnect" : "Start Conversation";
     }
 
     function sendMessage() {
-      const text = document.getElementById("messageInput").value.trim();
-      console.log("📤 Sending message:", text);
-      console.log("Conversation active?", isConversationActive);
-
+      const input = document.getElementById("messageInput");
+      const text = input.value.trim();
       if (!text) return;
 
+      console.log("📤 Attempting to send message:", text);
+
       if (!isConversationActive) {
-        alert("⚠️ Conversation not active. Please start it first.");
+        alert("⚠️ Conversation is not active. Click 'Start Conversation' first.");
         return;
       }
+
+      // Add user message to UI immediately
+      const container = document.getElementById("chatContainer");
+      const div = document.createElement("div");
+      div.className = "msg user";
+      div.textContent = `You: ${text}`;
+      container.appendChild(div);
+      input.value = "";
+      scrollChatToBottom();
 
       Genesys("command", "MessagingService.sendMessage", {
         message: { text }
       },
-        function (resp) {
-          console.log("✉️ Message sent:", resp);
-
-          const messagesDiv = document.getElementById("messages");
-          const msgDiv = document.createElement("div");
-          msgDiv.className = "msg user";
-          msgDiv.textContent = `You: ${text}`;
-          messagesDiv.appendChild(msgDiv);
-
-          document.getElementById("messageInput").value = "";
-          scrollChatToBottom();
-        },
-        function (err) {
-          console.error("❌ sendMessage error:", err);
-          alert("⚠️ Failed to send message. See console.");
-        }
-      );
+      (resp) => {
+        console.log("✉️ Message sent successfully:", resp);
+      },
+      (err) => {
+        console.error("❌ sendMessage error:", err);
+        addSystemMessage("Failed to send message");
+      });
     }
 
     function endConversation() {
+      if (!isConversationActive) return;
+      
       Genesys("command", "MessagingService.clearConversation", {},
-        function () {
+        () => {
           console.log("🛑 Conversation ended.");
           isConversationActive = false;
+          updateStatus("Disconnected", "status-disconnected");
+          enableChatUI(false);
+          addSystemMessage("You ended the conversation");
+          resetStartButton();
         },
-        function (err) {
+        (err) => {
           console.error("❌ endConversation error:", err);
         }
       );
     }
 
-    // Expose functions to global scope
+    // Global exposure
     window.sendMessage = sendMessage;
     window.resetAndConfigure = resetAndConfigure;
     window.endConversation = endConversation;
