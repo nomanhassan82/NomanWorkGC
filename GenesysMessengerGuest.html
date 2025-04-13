@@ -1,143 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Genesys Web Messaging with JWT</title>
-    <style>
-        /* (Keep the same styles as previous example) */
-    </style>
-</head>
+<html>
+<head><title>Genesys SDK Test</title></head>
 <body>
-    <h1>Genesys Web Messaging with JWT Auth</h1>
-    
-    <div id="authStatus" class="status disconnected">Not Authenticated</div>
-    <div id="connectionStatus" class="status disconnected">Disconnected</div>
-    
-    <div id="messages"></div>
-    
-    <input type="text" id="messageInput" placeholder="Type your message..." disabled>
-    <button id="sendButton" disabled>Send</button>
+<h2>SDK Test</h2>
+<script>
+(function (g, e, n, es) {
+  g["_genesysJs"] = e;
+  g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
+  g[e].t = +new Date();
+  g[e].c = es;
+  var s = document.createElement("script");
+  s.async = true;
+  s.src = n;
+  s.charset = "utf-8";
+  document.head.appendChild(s);
+})(
+  window,
+  "Genesys",
+  "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js",
+  {
+    deploymentId: "4411676a-d200-478c-8adc-1312bb86bb84",
+    environment: "prod-cac1",
+    messenger: { headlessMode: true },
+    debug: true
+  }
+);
 
-    <script>
-        // Configuration
-        const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
-        const CLIENT_SECRET = 'Zh2JoZHjCMh7zI0M2gDpIZTG0SFlQlPp8iUW6nCTwk0';
-        const DEPLOYMENT_ID = 'dcd7ee74-f592-42b0-968c-be0cfd88aead';
-        const REGION = 'cac1'; // Change to your region (e.g., 'mypurecloud.com' for us-east-1)
-        
-        // DOM elements
-        const messagesDiv = document.getElementById('messages');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const authStatusDiv = document.getElementById('authStatus');
-        const connectionStatusDiv = document.getElementById('connectionStatus');
-        
-        // State
-        let jwtToken = null;
-        let socket = null;
-
-        // 1. First get JWT token
-        async function getJwtToken() {
-            authStatusDiv.textContent = 'Authenticating...';
-            
-            try {
-                const response = await fetch(`https://login.${REGION}.pure.cloud/oauth/token`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Authorization': 'Basic ' + btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)
-                    },
-                    body: 'grant_type=token'
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                jwtToken = data.access_token;
-                authStatusDiv.textContent = 'Authenticated';
-                authStatusDiv.className = 'status connected';
-                
-                // Now connect WebSocket
-                connectWebSocket();
-            } catch (error) {
-                authStatusDiv.textContent = 'Authentication failed';
-                console.error('Authentication error:', error);
-            }
-        }
-
-        // 2. Connect WebSocket with JWT
-        function connectWebSocket() {
-            const websocketUrl = `wss://webmessaging.${REGION}.pure.cloud/v1?deploymentId=${DEPLOYMENT_ID}&token=${jwtToken}`;
-            
-            socket = new WebSocket(websocketUrl);
-            
-            socket.onopen = function(e) {
-                connectionStatusDiv.textContent = 'Connected';
-                connectionStatusDiv.className = 'status connected';
-                sendButton.disabled = false;
-                messageInput.disabled = false;
-                logMessage('System: Connected to Genesys Web Messaging');
-            };
-            
-            socket.onmessage = function(event) {
-                try {
-                    const message = JSON.parse(event.data);
-                    logMessage(`Agent: ${message.text}`);
-                } catch (e) {
-                    console.error('Error parsing message:', e);
-                }
-            };
-            
-            socket.onclose = function(event) {
-                connectionStatusDiv.textContent = 'Disconnected';
-                connectionStatusDiv.className = 'status disconnected';
-                sendButton.disabled = true;
-                messageInput.disabled = true;
-                
-                if (event.code === 1006) {
-                    logMessage('System: Connection lost - token may have expired');
-                    // Attempt to reconnect with a new token
-                    setTimeout(getJwtToken, 5000);
-                }
-            };
-            
-            socket.onerror = function(error) {
-                logMessage(`System: WebSocket error: ${error.message}`);
-            };
-        }
-
-        function logMessage(message) {
-            const messageElement = document.createElement('div');
-            messageElement.textContent = message;
-            messagesDiv.appendChild(messageElement);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-        
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message && socket && socket.readyState === WebSocket.OPEN) {
-                const messageObj = {
-                    text: message,
-                    type: 'text'
-                };
-                socket.send(JSON.stringify(messageObj));
-                logMessage(`You: ${message}`);
-                messageInput.value = '';
-            }
-        }
-        
-        // Event listeners
-        sendButton.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-        
-        // Initialize
-        getJwtToken();
-    </script>
+Genesys("subscribe", "MessagingService.ready", () => {
+  console.log("✅ SDK Ready");
+  Genesys("command", "MessagingService.startConversation", {
+    channel: { type: "web" }
+  },
+  resp => console.log("✅ Conversation started:", resp),
+  err => console.error("❌ Conversation error:", err));
+});
+</script>
 </body>
 </html>
