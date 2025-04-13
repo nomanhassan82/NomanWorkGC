@@ -169,32 +169,37 @@
       );
     }
 
-    function startNewConversation() {
-      console.log("🚀 Attempting to start a new conversation...");
+function startNewConversation() {
+  console.log("🚀 Attempting to start a new conversation...");
 
-      try {
-        Genesys("command", "MessagingService.startConversation", {
-          channel: { type: "web" }
-        },
-        (resp) => {
-          console.log("✅ New conversation started:", resp);
-          isConversationActive = true;
-        },
-        (err) => {
-          console.error("❌ startConversation error:", err);
-          alert("❌ Failed to start conversation. Check console.");
-        });
+  try {
+    Genesys("command", "MessagingService.startConversation", {
+      channel: { type: "web" }
+    },
+    (resp) => {
+      console.log("✅ Callback: Conversation started:", resp);
+      isConversationActive = true;
+    },
+    (err) => {
+      console.error("❌ Callback: startConversation error:", err);
+      alert("❌ Failed to start conversation. See console.");
+    });
 
-        // Timeout fallback
-        setTimeout(() => {
-          if (!isConversationActive) {
-            console.warn("⏰ No response from startConversation after 5 seconds.");
-          }
-        }, 5000);
-      } catch (e) {
-        console.error("💥 Exception during startConversation:", e);
+    // Watch request attempt (this logs deeper SDK behavior)
+    console.log("📡 SDK command issued for startConversation");
+
+    setTimeout(() => {
+      if (!isConversationActive) {
+        console.warn("⏰ No response from startConversation after 5s.");
+        console.warn("📌 If Messenger headless mode is on and this happens, session init is blocked.");
       }
-    }
+    }, 5000);
+
+  } catch (e) {
+    console.error("💥 Exception during startConversation:", e);
+  }
+}
+
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
