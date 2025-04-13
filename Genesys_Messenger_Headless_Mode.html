@@ -84,7 +84,7 @@
       "Genesys",
       "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js",
       {
-        deploymentId: "52f242c7-8771-4368-b20b-2929a715fedb", // ✅ Replace with your deploymentId
+        deploymentId: "52f242c7-8771-4368-b20b-2929a715fedb", // Replace with your real deploymentId
         environment: "cac1",
         messenger: { headlessMode: true },
         debug: true
@@ -96,12 +96,21 @@
       document.getElementById("startBtn").disabled = false;
     });
 
-    Genesys("subscribe", "MessagingService.messageReceived", event => {
+    Genesys("subscribe", "MessagingService.messageReceived", (event) => {
       console.log("📩 Message received:", event);
+
       const container = document.getElementById("chatContainer");
       const div = document.createElement("div");
       div.className = "msg agent";
-      div.textContent = event.message?.text || "[Non-text message]";
+
+      if (event.message?.text) {
+        div.textContent = `Agent: ${event.message.text}`;
+      } else if (event.message?.type === "Structured") {
+        div.textContent = `Agent sent structured content`;
+      } else {
+        div.textContent = `Agent sent: ${JSON.stringify(event.message)}`;
+      }
+
       container.appendChild(div);
       scrollChatToBottom();
     });
@@ -172,6 +181,7 @@
       const input = document.getElementById("messageInput");
       const text = input.value.trim();
       if (!text) return;
+
       if (!isConversationActive) {
         alert("⚠️ Start the conversation first.");
         return;
@@ -182,11 +192,13 @@
       },
       (resp) => {
         console.log("✉️ Message sent:", resp);
+
         const container = document.getElementById("chatContainer");
         const div = document.createElement("div");
         div.className = "msg user";
         div.textContent = `You: ${text}`;
         container.appendChild(div);
+
         input.value = "";
         scrollChatToBottom();
       },
@@ -208,7 +220,7 @@
       );
     }
 
-    // Expose functions to HTML buttons
+    // Make functions accessible from HTML
     window.sendMessage = sendMessage;
     window.resetAndConfigure = resetAndConfigure;
     window.endConversation = endConversation;
