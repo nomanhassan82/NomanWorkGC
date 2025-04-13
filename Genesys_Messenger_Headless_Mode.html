@@ -174,7 +174,7 @@ function startNewConversation() {
 
   try {
     Genesys("command", "MessagingService.startConversation", {
-      channel: { type: "web" }
+     // channel: { type: "web" }
     },
     (resp) => {
       console.log("✅ Callback: Conversation started:", resp);
