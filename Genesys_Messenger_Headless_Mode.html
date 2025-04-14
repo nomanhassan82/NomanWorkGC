@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless Chat v2</title>
+  <title>Genesys Headless Chat v3</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -234,23 +234,32 @@
     
 function sendMessageDirect() {
   const input1 = document.getElementById("messageInput");
-  const text1 = (input1.value || "").toString().trim();
+
+  if (!input1 || typeof input1.value !== "string") {
+    console.error("Input element not found or invalid:", input1);
+    return;
+  }
+
+  const text1 = input1.value.trim();
 
   if (!text1) {
     alert("Please type a message.");
     return;
   }
 
-  Genesys("command", "MessagingService.sendMessage", {
-    message: { text: text1 }  // ✅ correct key expected by SDK
-  },
-  (resp) => {
-    console.log("✅ Message sent:", resp);
-  },
-  (err) => {
-    console.error("❌ sendMessage error:", err);
-  });
+  const payload = { message: { text: text1 } };
+  console.log("📤 Payload to Genesys:", payload);
+
+  Genesys("command", "MessagingService.sendMessage", payload,
+    (resp) => {
+      console.log("✅ Message sent successfully:", resp);
+    },
+    (err) => {
+      console.error("❌ sendMessage error:", err);
+    }
+  );
 }
+
 
 
     function endConversation() {
