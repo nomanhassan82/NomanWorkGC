@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless Chat v2</title>
+  <title>Genesys Headless Chat v3</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
   </style>
 </head>
 <body>
-  <h2>Genesys Headless Chat v2</h2>
+  <h2>Genesys Headless Chat v3</h2>
 
   <button id="startBtn" onclick="resetAndConfigure()" disabled>
     Start or Resume Conversation
@@ -236,7 +236,7 @@
       const input1 = document.getElementById("messageInput");
       const text1 = input1.value.trim();
       Genesys("command", "MessagingService.sendMessage", {
-        message: message: { text1 } /*"hi there!"*/
+        message: { text1 } /*"hi there!"*/
       },
 function() {
         /*fulfilled callback*/
