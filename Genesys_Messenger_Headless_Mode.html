@@ -205,10 +205,10 @@
       console.log("📤 Attempting to send message:", text);
       console.log("🔎 isConversationActive?", isConversationActive);
 
-      if (!isConversationActive) {
-        alert("⚠️ Conversation is not active. Click 'Start or Resume Conversation' first.");
-        return;
-      }
+    //  if (!isConversationActive) {
+     //   alert("⚠️ Conversation is not active. Click 'Start or Resume Conversation' first.");
+    //    return;
+    //  }
 
       Genesys("command", "MessagingService.sendMessage", {
         message: { text }
