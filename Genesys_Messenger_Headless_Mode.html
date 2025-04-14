@@ -87,7 +87,6 @@
       "Genesys",
       "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js",
       {
-        //52f242c7-8771-4368-b20b-2929a715fedb , 4411676a-d200-478c-8adc-1312bb86bb84
         deploymentId: "52f242c7-8771-4368-b20b-2929a715fedb", // ✅ Replace with your deploymentId
         environment: "prod-cac1",
         messenger: { headlessMode: true },
@@ -95,13 +94,11 @@
       }
     );
 
-    // SDK ready
     Genesys("subscribe", "MessagingService.ready", () => {
       console.log("✅ MessagingService.ready");
       document.getElementById("startBtn").disabled = false;
     });
 
-    // Message received from agent
     Genesys("subscribe", "MessagingService.messageReceived", (event) => {
       console.log("📩 Message received:", event);
 
@@ -110,22 +107,20 @@
       div.className = "msg agent";
 
       if (event.message?.text) {
-        div.textContent = Agent: ${event.message.text};
+        div.textContent = `Agent: ${event.message.text}`;
       } else {
-        div.textContent = [Agent sent structured or non-text message];
+        div.textContent = `[Agent sent structured or non-text message]`;
       }
 
       container.appendChild(div);
       scrollChatToBottom();
     });
 
-    // Conversation started event
     Genesys("subscribe", "MessagingService.conversationStarted", (e) => {
       console.log("🟢 conversationStarted (event):", e);
       isConversationActive = true;
     });
 
-    // Errors
     Genesys("subscribe", "MessagingService.error", (e) => {
       console.error("❌ SDK error:", e);
     });
@@ -174,7 +169,6 @@
       console.log("🚀 Attempting to start a new conversation...");
 
       try {
-        //replace MessagingService.startConversation to MessagingService.joinConversation
         Genesys("command", "MessagingService.joinConversation", {
           channel: { type: "web" }
         },
@@ -187,7 +181,6 @@
           alert("❌ Failed to start conversation. Check console.");
         });
 
-        // Timeout fallback
         setTimeout(() => {
           if (!isConversationActive) {
             console.warn("⏰ No response from startConversation after 5 seconds.");
@@ -200,7 +193,7 @@
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
-      const text = input.value.trim();
+      const text = (input.value || "").toString().trim();
       if (!text) return;
 
       console.log("📤 Attempting to send message:", text);
@@ -220,7 +213,7 @@
         const container = document.getElementById("chatContainer");
         const div = document.createElement("div");
         div.className = "msg user";
-        div.textContent = You: ${text};
+        div.textContent = `You: ${text}`;
         container.appendChild(div);
 
         input.value = "";
@@ -228,7 +221,7 @@
       },
       (err) => {
         console.error("❌ sendMessage error:", err);
-        alert("❌ Failed to send message. Check console.");
+        alert("❌ Failed to send message. See console.");
       });
     }
 
@@ -244,7 +237,7 @@
       );
     }
 
-    // Global exposure
+    // Global access
     window.sendMessage = sendMessage;
     window.resetAndConfigure = resetAndConfigure;
     window.endConversation = endConversation;
