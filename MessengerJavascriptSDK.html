@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
 </head>
 <body>
-  <h3>Hybrid Genesys Chat (hidden UI) 1</h3>
+  <h3>Hybrid Genesys Chat (hidden UI) 2</h3>
   <input id="messageInput" placeholder="Type message..." />
   <button onclick="sendMessage()">Send</button>
 
@@ -57,22 +57,24 @@
     });
 
     function sendMessage() {
-      const val = document.getElementById("messageInput").value.trim();
-      if (!val) return;
-
-      Genesys("command", "MessagingService.sendMessage", {
-        message: { text: val }
-      },
-      function (resp) {
-        const log = document.getElementById("chatLog");
-        const msg = document.createElement("div");
-        msg.textContent = `You: ${val}`;
-        log.appendChild(msg);
-      },
-      function (err) {
-        console.error("❌ Send error:", err);
-      });
+  const payload = {
+    message: {
+      text: "Test from static payload"
     }
+  };
+
+  console.log("🔍 Sending payload:", payload);
+
+  Genesys("command", "MessagingService.sendMessage", payload,
+    function (resp) {
+      console.log("✅ Message sent:", resp);
+    },
+    function (err) {
+      console.error("❌ sendMessage error:", err);
+    }
+  );
+}
+
   </script>
 </body>
 </html>
