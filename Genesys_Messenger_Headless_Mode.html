@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless Chat v1</title>
+  <title>Genesys Headless Chat v2</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
   </style>
 </head>
 <body>
-  <h2>Genesys Headless Chat v1</h2>
+  <h2>Genesys Headless Chat v2</h2>
 
   <button id="startBtn" onclick="resetAndConfigure()" disabled>
     Start or Resume Conversation
@@ -197,17 +197,7 @@
         console.error("💥 Exception during startConversation:", e);
       }
     }
-    function sendMessageDirect(){
-  Genesys("command", "MessagingService.sendMessage", {
-        message: input.value.trim(); //"hi there!"
-      },
-function() {
-        /*fulfilled callback*/
-    },
-    function() {
-        /*rejected callback*/
-    }
-);
+
       
     }
     function sendMessage() {
@@ -243,6 +233,18 @@ function() {
         alert("❌ Failed to send message. Check console.");
       });
     }
+
+    function sendMessageDirect(){
+  Genesys("command", "MessagingService.sendMessage", {
+        message: input.value.trim(); //"hi there!"
+      },
+function() {
+        /*fulfilled callback*/
+    },
+    function() {
+        /*rejected callback*/
+    }
+);
 
     function endConversation() {
       Genesys("command", "MessagingService.clearConversation", {},
