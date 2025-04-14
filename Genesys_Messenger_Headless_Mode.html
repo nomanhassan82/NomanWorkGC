@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless Chat v4</title>
+  <title>Genesys Headless Chat v5</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
   </style>
 </head>
 <body>
-  <h2>Genesys Headless Chat v4</h2>
+  <h2>Genesys Headless Chat v5</h2>
 
   <button id="startBtn" onclick="resetAndConfigure()" disabled>
     Start or Resume Conversation
@@ -232,21 +232,26 @@
       });
     }
     
-    function sendMessageDirect(){
-      const input1 = document.getElementById("messageInput");
-      const text1 = (input1.value || "").toString().trim();
-      Genesys("command", "MessagingService.sendMessage", {
-        message: { text1 } /*"hi there!"*/
-      },
-function() {
-        /*fulfilled callback*/
-    },
-    function() {
-        /*rejected callback*/
-    }
-);
-      
-    }
+function sendMessageDirect() {
+  const input1 = document.getElementById("messageInput");
+  const text1 = (input1.value || "").toString().trim();
+
+  if (!text1) {
+    alert("Please type a message.");
+    return;
+  }
+
+  Genesys("command", "MessagingService.sendMessage", {
+    message: { text: text1 }
+  },
+  (resp) => {
+    console.log("✅ Message sent:", resp);
+  },
+  (err) => {
+    console.error("❌ sendMessage error:", err);
+  });
+}
+
 
     function endConversation() {
       Genesys("command", "MessagingService.clearConversation", {},
