@@ -199,7 +199,7 @@
     }
     function sendMessageDirect(){
   Genesys("command", "MessagingService.sendMessage", {
-        message: "hi there!"
+        message: input.value.trim(); //"hi there!"
       },
 function() {
         /*fulfilled callback*/
