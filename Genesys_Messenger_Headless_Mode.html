@@ -173,7 +173,8 @@
       console.log("🚀 Attempting to start a new conversation...");
 
       try {
-        Genesys("command", "MessagingService.startConversation", {
+        // MessagingService.startConversation
+        Genesys("command", "MessagingService.joinConversation", {
           channel: { type: "web" }
         },
         (resp) => {
