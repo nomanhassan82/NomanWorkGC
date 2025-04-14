@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless Chat v1</title>
+  <title>Genesys Headless Chat v2</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
   </style>
 </head>
 <body>
-  <h2>Genesys Headless Chat v1</h2>
+  <h2>Genesys Headless Chat</h2>
 
   <button id="startBtn" onclick="resetAndConfigure()" disabled>
     Start or Resume Conversation
@@ -234,7 +234,7 @@
     
 function sendMessageDirect() {
   const input1 = document.getElementById("messageInput");
-  const text1 = (input1.value);
+  const text1 = (input1.value || "").toString().trim();
 
   if (!text1) {
     alert("Please type a message.");
@@ -242,7 +242,7 @@ function sendMessageDirect() {
   }
 
   Genesys("command", "MessagingService.sendMessage", {
-    message: { text: text1 }
+    message: { text: text1 }  // ✅ correct key expected by SDK
   },
   (resp) => {
     console.log("✅ Message sent:", resp);
