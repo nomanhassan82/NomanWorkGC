@@ -199,7 +199,8 @@
 
 function sendMessage() {
   const input = document.getElementById("messageInput");
-  const text = (input.value || "").toString().trim();
+  // const text = (input.value || "").toString().trim();
+  const text = (input.value);
   if (!text) return;
 
   console.log("📤 Attempting to send message:", text);
