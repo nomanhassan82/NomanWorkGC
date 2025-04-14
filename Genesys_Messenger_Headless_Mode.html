@@ -197,39 +197,40 @@
       }
     }
 
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const text = input.value.trim();
-      if (!text) return;
+function sendMessage() {
+  const input = document.getElementById("messageInput");
+  const text = (input.value || "").toString().trim();
+  if (!text) return;
 
-      console.log("📤 Attempting to send message:", text);
-      console.log("🔎 isConversationActive?", isConversationActive);
+  console.log("📤 Attempting to send message:", text);
+  console.log("🔎 isConversationActive?", isConversationActive);
 
-    //  if (!isConversationActive) {
-     //   alert("⚠️ Conversation is not active. Click 'Start or Resume Conversation' first.");
-    //    return;
-    //  }
+  if (!isConversationActive) {
+    alert("⚠️ Conversation is not active. Click 'Start or Resume Conversation' first.");
+    return;
+  }
 
-      Genesys("command", "MessagingService.sendMessage", {
-        message: { text }
-      },
-      (resp) => {
-        console.log("✉️ Message sent successfully:", resp);
+  Genesys("command", "MessagingService.sendMessage", {
+    message: { text }
+  },
+  (resp) => {
+    console.log("✉️ Message sent successfully:", resp);
 
-        const container = document.getElementById("chatContainer");
-        const div = document.createElement("div");
-        div.className = "msg user";
-        div.textContent = `You: ${text}`;
-        container.appendChild(div);
+    const container = document.getElementById("chatContainer");
+    const div = document.createElement("div");
+    div.className = "msg user";
+    div.textContent = `You: ${text}`;
+    container.appendChild(div);
 
-        input.value = "";
-        scrollChatToBottom();
-      },
-      (err) => {
-        console.error("❌ sendMessage error:", err);
-        alert("❌ Failed to send message. Check console.");
-      });
-    }
+    input.value = "";
+    scrollChatToBottom();
+  },
+  (err) => {
+    console.error("❌ sendMessage error:", err);
+    alert("❌ Failed to send message. Check console.");
+  });
+}
+
 
     function endConversation() {
       Genesys("command", "MessagingService.clearConversation", {},
