@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless Chat</title>
+  <title>Genesys Headless Chat v1</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
   </style>
 </head>
 <body>
-  <h2>Genesys Headless Chat</h2>
+  <h2>Genesys Headless Chat v1</h2>
 
   <button id="startBtn" onclick="resetAndConfigure()" disabled>
     Start or Resume Conversation
@@ -66,6 +66,7 @@
   <div id="inputArea">
     <input id="messageInput" placeholder="Type a message..." />
     <button onclick="sendMessage()">Send</button>
+    <button onclick="sendMessageDirect()">Send Message</button>
   </div>
 
   <script>
@@ -196,7 +197,19 @@
         console.error("💥 Exception during startConversation:", e);
       }
     }
-
+    function sendMessageDirect(){
+  Genesys("command", "MessagingService.sendMessage", {
+        message: "hi there!"
+      },
+function() {
+        /*fulfilled callback*/
+    },
+    function() {
+        /*rejected callback*/
+    }
+);
+      
+    }
     function sendMessage() {
       const input = document.getElementById("messageInput");
       const text = input.value.trim();
