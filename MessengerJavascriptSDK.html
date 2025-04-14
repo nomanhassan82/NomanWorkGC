@@ -1,129 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+  <title>Genesys Hybrid Chat (Workaround)</title>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Genesys Headless Chat</title>
-  <style>
-    /* [Keep your existing styles] */
-  </style>
 </head>
 <body>
-  <!-- [Keep your existing HTML structure] -->
+  <h3>Hybrid Genesys Chat (hidden UI) 1</h3>
+  <input id="messageInput" placeholder="Type message..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <div id="chatLog" style="margin-top:20px;"></div>
 
   <script>
-    // 1. SDK Initialization with Error Handling
-    (function(g, e, n) {
-      g["_genesysJs"] = e;
+    (function(g, e, n, es) {
+      g['_genesysJs'] = e;
       g[e] = g[e] || function() {
         (g[e].q = g[e].q || []).push(arguments);
       };
       g[e].t = +new Date();
-      g[e].c = {
-        deploymentId: "4411676a-d200-478c-8adc-1312bb86bb84",
-        environment: "prod-cac1",
-        messenger: {
-          headlessMode: true,
-          autoStart: false
-        },
-        debug: false
-      };
-      
-      var s = document.createElement("script");
+      g[e].c = es;
+      var s = document.createElement('script');
       s.async = true;
       s.src = n;
-      s.charset = "utf-8";
-      s.onerror = function() {
-        console.error("Genesys SDK failed to load");
-        updateStatus("SDK failed to load", "status-disconnected");
-      };
+      s.charset = 'utf-8';
       document.head.appendChild(s);
-    })(window, "Genesys", "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js");
+    })(
+      window,
+      'Genesys',
+      'https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js',
+      {
+        deploymentId: '52f242c7-8771-4368-b20b-2929a715fedb',
+        environment: 'prod-cac1',
+        debug: true
+      }
+    );
 
-    // 2. Enhanced Event Handling
-    Genesys("subscribe", "MessagingService.ready", function() {
-      console.log("SDK Ready - Chat service initialized");
-      updateStatus("Ready to connect", "status-disconnected");
-      document.getElementById("startBtn").disabled = false;
-      
-      // Safe debugging alternative
-      Genesys("subscribe", "MessagingService.debug", function(event) {
-        console.debug("[Genesys Debug]", event);
-      });
+    Genesys("subscribe", "MessagingService.ready", function () {
+      console.log("✅ UI Ready. Opening to trigger connection...");
+      Genesys("command", "Messenger.open");
+
+      setTimeout(() => {
+        Genesys("command", "Messenger.close");
+        const iframe = document.querySelector("iframe[src*='webmessaging']");
+        if (iframe) {
+          iframe.style.display = "none";
+        }
+        console.log("🫥 Messenger iframe hidden.");
+      }, 2000);
     });
 
-    // 3. Connection Management with Retry Logic
-    function startNewConversation() {
-      console.log("Attempting to start conversation...");
-      updateStatus("Connecting...", "status-connecting");
-      showLoading(true);
-
-      // Clear previous timeout if exists
-      if (window.connectionTimeout) {
-        clearTimeout(window.connectionTimeout);
-      }
-
-      // Set timeout (15 seconds)
-      window.connectionTimeout = setTimeout(function() {
-        if (!isConversationActive) {
-          handleConnectionFailure("Connection timed out (15s)");
-        }
-      }, 15000);
-
-      // Start conversation with enhanced configuration
-      Genesys("command", "MessagingService.startConversation", {
-        channel: {
-          type: "web",
-          timeout: 15000
-        }
-      }, 
-      function success(response) {
-        clearTimeout(window.connectionTimeout);
-        console.log("Connection successful:", response);
-        isConversationActive = true;
-        updateStatus("Connected", "status-connected");
-        enableChatUI(true);
-        showLoading(false);
-        addSystemMessage("Connected to agent");
-      }, 
-      function error(err) {
-        clearTimeout(window.connectionTimeout);
-        console.error("Connection error:", err);
-        handleConnectionFailure(err.error?.message || "Connection failed");
-      });
-    }
-
-    function handleConnectionFailure(message) {
-      console.warn("Connection failed:", message);
-      updateStatus(message, "status-disconnected");
-      showLoading(false);
-      addSystemMessage("Connection failed: " + message);
-      
-      // Enable retry button
-      document.getElementById("startBtn").disabled = false;
-      document.getElementById("startBtnText").textContent = "Retry Connection";
-    }
-
-    // 4. Enhanced Message Handling
-    Genesys("subscribe", "MessagingService.messageReceived", function(event) {
-      console.log("Message received:", event);
-      if (event.message?.text) {
-        addMessageToChat("agent", event.message.text);
-      } else {
-        addMessageToChat("system", "[Agent sent non-text message]");
-      }
+    Genesys("subscribe", "MessagingService.messageReceived", function (e) {
+      const log = document.getElementById("chatLog");
+      const msg = document.createElement("div");
+      msg.textContent = `Agent: ${e.message?.text || '[non-text]'}`;
+      log.appendChild(msg);
     });
 
-    function addMessageToChat(sender, text) {
-      const container = document.getElementById("chatContainer");
-      const div = document.createElement("div");
-      div.className = "msg " + sender;
-      div.textContent = sender === "user" ? "You: " + text : "Agent: " + text;
-      container.appendChild(div);
-      scrollChatToBottom();
-    }
+    function sendMessage() {
+      const val = document.getElementById("messageInput").value.trim();
+      if (!val) return;
 
-    // [Keep your existing utility functions]
+      Genesys("command", "MessagingService.sendMessage", {
+        message: { text: val }
+      },
+      function (resp) {
+        const log = document.getElementById("chatLog");
+        const msg = document.createElement("div");
+        msg.textContent = `You: ${val}`;
+        log.appendChild(msg);
+      },
+      function (err) {
+        console.error("❌ Send error:", err);
+      });
+    }
   </script>
 </body>
 </html>
