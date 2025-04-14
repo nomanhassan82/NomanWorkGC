@@ -227,7 +227,9 @@ function sendMessage() {
   },
   (err) => {
     console.error("❌ sendMessage error:", err);
-    alert("❌ Failed to send message. Check console.");
+    //alert("❌ Failed to send message. Check console.");
+      Genesys("command", "MessagingService.sendMessage", {
+    message: { text }
   });
 }
 
