@@ -121,10 +121,26 @@
       document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
     });
 
-    Genesys("subscribe", "MessagingService.messageReceived", (event) => {
-      console.log("📩 Agent message:", event);
-      appendMessage("Agent", event.message?.text || event.message);
-    });
+Genesys("subscribe", "MessagingService.messageReceived", (event) => {
+  console.log("📩 Message received:", event);
+  
+  // Handle structured messages
+  const messageText = event.message?.text || 
+                     event.message?.body?.text || 
+                     event.message?.body?.markdown;
+
+  // Determine sender type
+  const senderType = event.message?.originatingEntity === "Bot" ? "bot" : "agent";
+  
+  if (messageText) {
+    appendMessage(
+      senderType === "bot" ? "Bot" : "Agent",
+      messageText,
+      event.message?.timestamp || new Date().toISOString()
+    );
+  }
+});
+
 
     Genesys("subscribe", "MessagingService.systemMessageReceived", (event) => {
       console.log("🔔 System message:", event);
