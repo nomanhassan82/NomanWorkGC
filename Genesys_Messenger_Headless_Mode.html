@@ -197,39 +197,48 @@
       }
     }
     
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const text = input.value.trim();
-      if (!text) return;
+function sendMessage() {
+  const input = document.getElementById("messageInput");
+  if (!input) {
+    console.warn("⚠️ Input element not found.");
+    return;
+  }
 
-      console.log("📤 Attempting to send message:", text);
-      console.log("🔎 isConversationActive?", isConversationActive);
+  const text = input.value?.toString().trim();
+  if (!text || typeof text !== "string") {
+    console.warn("⚠️ Invalid message text:", text);
+    return;
+  }
 
-      if (!isConversationActive) {
-        alert("⚠️ Conversation is not active. Click 'Start or Resume Conversation' first.");
-        return;
-      }
+  console.log("📤 Attempting to send message:", text);
+  console.log("🔎 isConversationActive?", isConversationActive);
 
-      Genesys("command", "MessagingService.sendMessage", {
-        message: { text }
-      },
-      (resp) => {
-        console.log("✉️ Message sent successfully:", resp);
+  if (!isConversationActive) {
+    alert("⚠️ Conversation is not active. Click 'Start or Resume Conversation' first.");
+    return;
+  }
 
-        const container = document.getElementById("chatContainer");
-        const div = document.createElement("div");
-        div.className = "msg user";
-        div.textContent = `You: ${text}`;
-        container.appendChild(div);
+  Genesys("command", "MessagingService.sendMessage", {
+    message: { text }
+  },
+  (resp) => {
+    console.log("✉️ Message sent successfully:", resp);
 
-        input.value = "";
-        scrollChatToBottom();
-      },
-      (err) => {
-        console.error("❌ sendMessage error:", err);
-        alert("❌ Failed to send message. Check console.");
-      });
-    }
+    const container = document.getElementById("chatContainer");
+    const div = document.createElement("div");
+    div.className = "msg user";
+    div.textContent = `You: ${text}`;
+    container.appendChild(div);
+
+    input.value = "";
+    scrollChatToBottom();
+  },
+  (err) => {
+    console.error("❌ sendMessage error:", err);
+    alert("❌ Failed to send message. Check console.");
+  });
+}
+
     
 
 
