@@ -260,7 +260,7 @@ function sendMessage() {
 }
 function sendMessageDirect(){
 Genesys("command", "MessagingService.sendMessage", {
-    message: "hi there! This is a message from the Send Message Direct Button."
+    message: {input}
 },
     function() {
         /*fulfilled callback*/
