@@ -99,13 +99,13 @@
       document.head.appendChild(s);
     })(window, 'Genesys', 'https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js', {
       environment: 'prod-cac1',
-      deploymentId: '4411676a-d200-478c-8adc-1312bb86bb84', // Replace with your actual deploymentId
+      deploymentId: '4411676a-d200-478c-8adc-1312bb86bb84',
       messenger: { headlessMode: true },
       debug: true
     });
 
     Genesys("subscribe", "MessagingService.ready", () => {
-      console.log("✅ MessagingService.ready");
+      console.log("✅ SDK ready");
       document.getElementById("startBtn").disabled = false;
     });
 
@@ -133,6 +133,18 @@
       });
     });
 
+    // 💬 Patch: Capture agent replies via cxbus structured messages
+    Genesys("subscribe", "cxbus.message", (event) => {
+      if (
+        event?.payload?.class === "StructuredMessage" &&
+        event.payload.direction === "Outbound" &&
+        event.payload.body?.text
+      ) {
+        console.log("💬 Agent StructuredMessage via cxbus:", event.payload.body.text);
+        appendMessage("Agent", event.payload.body.text);
+      }
+    });
+
     Genesys("subscribe", "MessagingService.error", (e) => {
       console.error("❌ SDK error:", e);
     });
@@ -154,7 +166,6 @@
     }
 
     function resetAndConfigure(retry = false) {
-      console.log("🔄 Resetting and configuring conversation...");
       Genesys("command", "MessagingService.clearConversation", {},
         () => configureConversation(retry),
         () => configureConversation(retry)
