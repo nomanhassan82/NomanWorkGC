@@ -228,7 +228,7 @@
     
 function sendMessage() {
   const input = document.getElementById("messageInput");
-  const text = input ? input.value: "";
+  const text = input.value;
 
   console.log("📤 Attempting to send message:", text);
   console.log("🔎 isConversationActive?", isConversationActive);
@@ -239,7 +239,7 @@ function sendMessage() {
   }
 
   Genesys("command", "MessagingService.sendMessage", {
-    message: { input }
+    message: { text }
   },
   (resp) => {
     console.log("✉️ Message sent successfully:", resp);
@@ -255,7 +255,7 @@ function sendMessage() {
   },
   (err) => {
     console.error("❌ sendMessage error:", err);
-    alert("❌ Failed to send message. Check console.");
+    //alert("❌ Failed to send message. Check console.");
   });
 }
 function sendMessageDirect(){
