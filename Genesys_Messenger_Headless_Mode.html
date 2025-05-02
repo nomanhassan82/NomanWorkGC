@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Headless Chat v4</title>
+  <title>Genesys Headless Chat v6</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -259,13 +259,14 @@ function sendMessage() {
   });
 }
 function sendMessageDirect(){
-Genesys("command", "MessagingService.sendMessage",  {
+Genesys("command", "MessagingService.sendMessage", {
     type: "quickReply", //Mandatory field specifying the Rich media type
     postback: {
         action: "Message", //Optional
         text: "I like movies", //Mandatory field containing the quick reply text
         payload: "I like movies" //Mandatory field containing the quick reply payload
-    },
+    }
+},
     function() {
         /*fulfilled callback*/
     },
@@ -273,6 +274,7 @@ Genesys("command", "MessagingService.sendMessage",  {
         /*rejected callback*/
     }
 );
+	
 }
  
 
