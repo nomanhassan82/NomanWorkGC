@@ -233,17 +233,17 @@
     }
     
 function sendMessageDirect() {
-Genesys("command", "MessagingService.sendMessage", {
-    message: "hi there!"
-},
-    function() {
-        /*fulfilled callback*/
-    },
-    function() {
-        /*rejected callback*/
-    }
-);
+  Genesys("command", "MessagingService.sendMessage", {
+    message: { text: "hi there!" }  // ✅ Correct format
+  },
+  function(resp) {
+    console.log("✉️ Direct message sent:", resp);
+  },
+  function(err) {
+    console.error("❌ Direct sendMessage error:", err);
+  });
 }
+
 
 
 
