@@ -259,9 +259,13 @@ function sendMessage() {
   });
 }
 function sendMessageDirect(){
-Genesys("command", "MessagingService.sendMessage", {
-    message: "hi there!"
-},
+Genesys("command", "MessagingService.sendMessage",  {
+    type: "quickReply", //Mandatory field specifying the Rich media type
+    postback: {
+        action: "Message", //Optional
+        text: "I like movies", //Mandatory field containing the quick reply text
+        payload: "I like movies" //Mandatory field containing the quick reply payload
+    },
     function() {
         /*fulfilled callback*/
     },
