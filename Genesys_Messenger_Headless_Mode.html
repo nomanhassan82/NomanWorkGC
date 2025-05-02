@@ -239,7 +239,7 @@ function sendMessage() {
   }
 
   Genesys("command", "MessagingService.sendMessage", {
-    message: { text }
+    message: text 
   },
   (resp) => {
     console.log("✉️ Message sent successfully:", resp);
