@@ -85,6 +85,7 @@
   <div id="inputArea">
     <input id="messageInput" placeholder="Type a message..." />
     <button onclick="sendMessage()">Send</button>
+    <button onclick="sendMessageDirect()">SendDirect</button>
       </div>
 
   <script>
@@ -257,9 +258,19 @@ function sendMessage() {
     alert("❌ Failed to send message. Check console.");
   });
 }
-
-
-    
+function sendMessageDirect(){
+Genesys("command", "MessagingService.sendMessage", {
+    message: "hi there! This is a message from the Send Message Direct Button."
+},
+    function() {
+        /*fulfilled callback*/
+    },
+    function() {
+        /*rejected callback*/
+    }
+);
+}
+ 
 
 
     function endConversation() {
