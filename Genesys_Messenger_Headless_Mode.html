@@ -227,16 +227,7 @@
     
 function sendMessage() {
   const input = document.getElementById("messageInput");
-  if (!input) {
-    console.warn("⚠️ Input element not found.");
-    return;
-  }
-
-  const text = input.value?.toString().trim();
-  if (!text || typeof text !== "string") {
-    console.warn("⚠️ Invalid message text:", text);
-    return;
-  }
+  const text = input ? input.value: "";
 
   console.log("📤 Attempting to send message:", text);
   console.log("🔎 isConversationActive?", isConversationActive);
@@ -258,7 +249,7 @@ function sendMessage() {
     div.textContent = `You: ${text}`;
     container.appendChild(div);
 
-    input.value = "";
+    if (input) input.value = "";
     scrollChatToBottom();
   },
   (err) => {
@@ -266,6 +257,7 @@ function sendMessage() {
     alert("❌ Failed to send message. Check console.");
   });
 }
+
 
     
 
