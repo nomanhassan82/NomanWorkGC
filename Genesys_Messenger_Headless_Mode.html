@@ -239,7 +239,7 @@ function sendMessage() {
   }
 
   Genesys("command", "MessagingService.sendMessage", {
-    message: { text }
+    message: { input }
   },
   (resp) => {
     console.log("✉️ Message sent successfully:", resp);
@@ -260,7 +260,7 @@ function sendMessage() {
 }
 function sendMessageDirect(){
 Genesys("command", "MessagingService.sendMessage", {
-    message: {input}
+    message: "hi there!"
 },
     function() {
         /*fulfilled callback*/
