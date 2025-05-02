@@ -133,15 +133,26 @@
       });
     });
 
-    // 💬 Patch: Capture agent replies via cxbus structured messages
+    // ✅ Agent replies via cxbus StructuredMessage (text, markdown)
     Genesys("subscribe", "cxbus.message", (event) => {
-      if (
-        event?.payload?.class === "StructuredMessage" &&
-        event.payload.direction === "Outbound" &&
-        event.payload.body?.text
-      ) {
-        console.log("💬 Agent StructuredMessage via cxbus:", event.payload.body.text);
-        appendMessage("Agent", event.payload.body.text);
+      const p = event?.payload;
+
+      // Debug all outbound messages
+      if (p?.direction === "Outbound") {
+        console.log("🕵️ Outbound cxbus message:", p);
+      }
+
+      if (p?.class === "StructuredMessage" && p.direction === "Outbound") {
+        const text = p.body?.text || p.body?.markdown;
+        if (text) {
+          console.log("💬 Agent StructuredMessage:", text);
+          appendMessage("Agent", text);
+        }
+      }
+
+      if (p?.class === "Message" && p.direction === "Outbound" && typeof p.message === "string") {
+        console.log("💬 Agent Message class:", p.message);
+        appendMessage("Agent", p.message);
       }
     });
 
