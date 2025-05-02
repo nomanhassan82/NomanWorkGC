@@ -66,8 +66,7 @@
   <div id="inputArea">
     <input id="messageInput" placeholder="Type a message..." />
     <button onclick="sendMessage()">Send</button>
-    <button onclick="sendMessageDirect()">Send Message</button>
-  </div>
+      </div>
 
   <script>
     let isConversationActive = false;
@@ -232,19 +231,6 @@
       });
     }
     
-function sendMessageDirect() {
-  Genesys("command", "MessagingService.sendMessage", {
-    message: { text: "hi there!" }  // ✅ Correct format
-  },
-  function(resp) {
-    console.log("✉️ Direct message sent:", resp);
-  },
-  function(err) {
-    console.error("❌ Direct sendMessage error:", err);
-  });
-}
-
-
 
 
     function endConversation() {
