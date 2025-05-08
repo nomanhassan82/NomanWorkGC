@@ -44,11 +44,11 @@
   }
 
   .msg.user {
-    background-color: #d9ecff;
-    color: #004085;
-    align-self: flex-end;
-    border-top-right-radius: 0;
-    text-align: right;
+    background-color: #007bff;   /* Brighter blue */
+  color: #ffffff;              /* White text */
+  align-self: flex-end;
+  border-top-right-radius: 0;
+  text-align: right;
   }
 
   .msg.agent {
@@ -176,7 +176,7 @@
         s.charset = "utf-8";
         s.onload = function () {
           Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V4");
+            console.log("✅ SDK ready V5");
             startBtn.disabled = false;
           });
 
