@@ -137,6 +137,7 @@
 
         Genesys("subscribe", "MessagingService.ready", () => {
           console.log("✅ SDK ready");
+          console.log("📩 Token:", token);
           document.getElementById("startBtn").disabled = false;
         });
 
