@@ -100,7 +100,6 @@
   <script>
     let isConversationActive = false;
     let conversationId = null;
-    let typingTimeout;
 
     const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
     const REGION = 'cac1.pure.cloud';
@@ -110,6 +109,17 @@
     const loginButton = document.getElementById('loginButton');
     const statusDiv = document.getElementById('status');
     const startBtn = document.getElementById('startBtn');
+
+    function appendMessage(source, text) {
+      if (!text || typeof text !== 'string') return;
+      const container = document.getElementById("chatContainer");
+      const div = document.createElement("div");
+      const timestamp = new Date().toLocaleTimeString();
+      div.className = "msg " + (source === "Visitor" || source === "You" ? "user" : "agent");
+      div.innerHTML = `${source}: ${text}<span class="timestamp">${timestamp}</span>`;
+      container.appendChild(div);
+      document.getElementById("chatWindow").scrollTop = container.scrollHeight;
+    }
 
     window.addEventListener('load', function () {
       const hash = window.location.hash.substr(1);
@@ -132,37 +142,15 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V1");
+              console.log("✅ SDK ready V4");
               startBtn.disabled = false;
             });
 
-Genesys("subscribe", "cxbus.message", (event) => {
-  const p = event?.payload;
-  if (!p || p.direction !== "Outbound") return;
-
-  let text = null;
-
-  if (p.body?.text) {
-    text = p.body.text; // standard agent reply
-  } else if (p.message?.text) {
-    text = p.message.text; // fallback for message format
-  } else if (typeof p.message === 'string') {
-    text = p.message; // plain text message
-  }
-
-  if (text) {
-    appendMessage("Agent", text);
-    console.log("✅ Agent message rendered:", text);
-  } else {
-    console.warn("⚠️ Unrecognized agent payload format:", p);
-  }
-});
-
-
-            Genesys("subscribe", "MessagingService.messageReceived", (event) => {
-              const msg = event.message;
-              const text = msg?.body?.text || msg?.text;
-              if (text) appendMessage("Agent", text);
+            Genesys("subscribe", "cxbus.message", (event) => {
+              const p = event?.payload;
+              if (p?.body?.direction === "Outbound" && p.body?.text) {
+                appendMessage("Agent", p.body.text);
+              }
             });
           };
           document.head.appendChild(s);
@@ -172,9 +160,6 @@ Genesys("subscribe", "cxbus.message", (event) => {
           messenger: { headlessMode: true, jwt: token },
           debug: true
         });
-      } else if (params.has('error')) {
-        statusDiv.textContent = `Error: ${params.get('error_description') || params.get('error')}`;
-        console.error('OAuth error:', params.get('error_description'));
       }
     });
 
@@ -182,28 +167,6 @@ Genesys("subscribe", "cxbus.message", (event) => {
       const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
       window.location.href = authUrl;
     });
-
-    function appendMessage(source, text) {
-      clearTypingIndicator();
-      if (!text || typeof text !== 'string') return;
-      const container = document.getElementById("chatContainer");
-      const div = document.createElement("div");
-      const timestamp = new Date().toLocaleTimeString();
-      div.className = "msg " + (source === "Visitor" || source === "You" ? "user" : "agent");
-      div.innerHTML = `${source}: ${text}<span class="timestamp">${timestamp}</span>`;
-      container.appendChild(div);
-      scrollChatToBottom();
-    }
-
-    function scrollChatToBottom() {
-      const chat = document.getElementById("chatWindow");
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    function clearTypingIndicator() {
-      const indicator = document.getElementById("typingIndicator");
-      if (indicator) indicator.remove();
-    }
 
     function resetAndConfigure(retry = false) {
       Genesys("command", "MessagingService.clearConversation", {},
