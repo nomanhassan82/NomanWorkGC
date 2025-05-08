@@ -11,16 +11,13 @@
       margin: 0 auto;
       padding: 20px;
     }
-
     #typingIndicator {
       font-style: italic;
       color: #666;
       background: #eee;
       border-left: 4px solid #ccc;
       padding-left: 10px;
-      margin-top: 5px;
     }
-
     #chatWindow {
       border: 1px solid #ccc;
       padding: 10px;
@@ -29,12 +26,10 @@
       background: #f9f9f9;
       margin-top: 10px;
     }
-
     #chatContainer {
       display: flex;
       flex-direction: column;
     }
-
     .msg {
       margin: 5px 0;
       padding: 8px 12px;
@@ -44,14 +39,12 @@
       position: relative;
       font-size: 14px;
     }
-
     .msg .timestamp {
       display: block;
       font-size: 10px;
       color: #777;
       margin-top: 4px;
     }
-
     .msg.user {
       background-color: #007bff;
       color: #ffffff;
@@ -59,14 +52,12 @@
       border-top-right-radius: 0;
       text-align: right;
     }
-
     .msg.agent {
       background-color: #d4edda;
       color: #155724;
       align-self: flex-start;
       border-top-left-radius: 0;
     }
-
     .msg.bot {
       background-color: #fff3cd;
       color: #856404;
@@ -74,7 +65,6 @@
       border-top-left-radius: 0;
       font-style: italic;
     }
-
     .msg.system {
       background-color: #f5f5f5;
       color: #333;
@@ -83,35 +73,29 @@
       align-self: center;
       font-style: italic;
     }
-
     #inputArea {
       margin-top: 10px;
       display: flex;
       gap: 5px;
     }
-
     #messageInput {
       flex-grow: 1;
       padding: 6px;
     }
-
     #conversationInfo {
       font-size: 12px;
       color: #555;
       margin-top: 10px;
     }
-
     #status {
       margin: 10px 0;
       padding: 10px;
       border-radius: 4px;
     }
-
     .connected {
       background-color: #d4edda;
       color: #155724;
     }
-
     .disconnected {
       background-color: #f8d7da;
       color: #721c24;
@@ -146,7 +130,6 @@
     let conversationId = null;
     let agentTypingTimeout = null;
     let lastTypingSent = 0;
-
     const messageInput = document.getElementById("messageInput");
     const typingIndicatorDiv = document.getElementById("typingIndicator");
 
@@ -192,29 +175,6 @@
         statusDiv.className = 'connected';
         window.history.replaceState({}, document.title, window.location.pathname);
 
-        // ✅ SUBSCRIBE before SDK script loads
-        Genesys("subscribe", "cxbus.message", (event) => {
-          const p = event?.payload;
-          if (
-            p?.class === "StructuredMessage" &&
-            p?.body?.type === "Event" &&
-            p?.body?.direction === "Outbound" &&
-            Array.isArray(p.body.events)
-          ) {
-            p.body.events.forEach((e) => {
-              if (e.eventType === "Typing" && e.typing?.type === "On") {
-                console.log("🟢 Agent is typing...");
-                typingIndicatorDiv.style.display = "block";
-                clearTimeout(agentTypingTimeout);
-                agentTypingTimeout = setTimeout(() => {
-                  typingIndicatorDiv.style.display = "none";
-                }, e.typing.duration || 5000);
-              }
-            });
-          }
-        });
-
-        // ✅ Load Genesys SDK
         (function (g, e, n, es) {
           g["_genesysJs"] = e;
           g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
@@ -247,6 +207,27 @@
                   }
                 }
               });
+            });
+
+            Genesys("subscribe", "cxbus.message", (event) => {
+              const p = event?.payload;
+              if (
+                p?.class === "StructuredMessage" &&
+                p?.body?.type === "Event" &&
+                p?.body?.direction === "Outbound" &&
+                Array.isArray(p.body.events)
+              ) {
+                p.body.events.forEach((e) => {
+                  if (e.eventType === "Typing" && e.typing?.type === "On") {
+                    console.log("🟢 Agent is typing...");
+                    typingIndicatorDiv.style.display = "block";
+                    clearTimeout(agentTypingTimeout);
+                    agentTypingTimeout = setTimeout(() => {
+                      typingIndicatorDiv.style.display = "none";
+                    }, e.typing.duration || 5000);
+                  }
+                });
+              }
             });
           };
           document.head.appendChild(s);
@@ -326,5 +307,6 @@
       );
     }
   </script>
+
 </body>
 </html>
