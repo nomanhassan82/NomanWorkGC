@@ -137,8 +137,27 @@
 
         window.addEventListener("GenesysLoaded", () => {
           Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V3");
+            console.log("✅ SDK ready V4");
             document.getElementById("startBtn").disabled = false;
+          });
+
+          Genesys("subscribe", "cxbus.message", (event) => {
+            const p = event?.payload;
+            if (!p || p.direction !== "Outbound") return;
+
+            if (p.class === "StructuredMessage") {
+              const text = p.body?.text || p.body?.markdown;
+              if (text) {
+                console.log("💬 StructuredMessage:", text);
+                appendMessage("Agent", text);
+              }
+            } else if (p.class === "Message") {
+              const text = p.message;
+              if (text) {
+                console.log("💬 Agent Message:", text);
+                appendMessage("Agent", text);
+              }
+            }
           });
 
           Genesys("subscribe", "MessagingService.conversationStarted", (e) => {
@@ -246,7 +265,7 @@
       const text = input.value;
       if (!text || !isConversationActive) return;
       Genesys("command", "MessagingService.sendMessage", {
-        message: text 
+        message: text
       },
       () => appendMessage("You", text),
       (err) => console.error("❌ sendMessage error:", err));
