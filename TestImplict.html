@@ -140,11 +140,9 @@
           debug: true
         });
 
-        window.addEventListener("GenesysLoaded", () => {
-          Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V5");
-            document.getElementById("startBtn").disabled = false;
-          });
+        Genesys("subscribe", "MessagingService.ready", () => {
+          console.log("✅ SDK ready");
+          document.getElementById("startBtn").disabled = false;
 
           Genesys("subscribe", "cxbus.message", (event) => {
             const p = event?.payload;
