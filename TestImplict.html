@@ -136,19 +136,21 @@
         });
 
         Genesys("subscribe", "MessagingService.ready", () => {
-          console.log("✅ SDK ready v1");
+          console.log("✅ SDK ready v2");
           document.getElementById("startBtn").disabled = false;
-        });
 
-        Genesys("subscribe", "cxbus.message", (event) => {
-          const p = event?.payload;
-          if (p?.class === "StructuredMessage" && p.direction === "Outbound") {
-            const text = p.body?.text || p.body?.markdown;
-            if (text) {
-              console.log("💬 Agent reply (StructuredMessage):", text);
-              appendMessage("Agent", text);
-            }
-          }
+          setTimeout(() => {
+            Genesys("subscribe", "cxbus.message", (event) => {
+              const p = event?.payload;
+              if (p?.class === "StructuredMessage" && p.direction === "Outbound") {
+                const text = p.body?.text || p.body?.markdown;
+                if (text) {
+                  console.log("💬 Agent reply (StructuredMessage):", text);
+                  appendMessage("Agent", text);
+                }
+              }
+            });
+          }, 500);
         });
 
         Genesys("subscribe", "MessagingService.conversationStarted", (e) => {
