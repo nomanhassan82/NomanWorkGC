@@ -202,7 +202,7 @@
         s.charset = "utf-8";
         s.onload = function () {
           Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V11");
+            console.log("✅ SDK ready V12");
             startBtn.disabled = false;
           });
 
@@ -210,7 +210,7 @@ Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
   const messages = event.data.messages || [];
 
   messages.forEach((msg) => {
-    // Handle actual text messages
+    // Handle text messages
     if (msg.type === "Text") {
       if (msg.direction === "Inbound") {
         appendMessage("You", msg.text);
@@ -225,28 +225,18 @@ Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
       }
     }
 
-    // ✅ Corrected: Agent typing from StructuredMessage > body > events
-    if (
-      msg.class === "StructuredMessage" &&
-      msg.body?.type === "Event" &&
-      msg.body?.direction === "Outbound" &&
-      Array.isArray(msg.body.events)
-    ) {
-      msg.body.events.forEach(event => {
-        if (event.eventType === "Typing" && event.typing?.type === "On") {
-          console.log("🟢 Agent is typing (StructuredMessage.body.events)");
+    // ✅ Handle agent typing indicator — correctly from SDK
+    if (msg.type === "Typing" && msg.originatingEntity === "Human" && msg.direction === "Outbound") {
+      console.log("🟢 Agent is typing...");
 
-          typingIndicatorDiv.style.display = "block";
-          clearTimeout(agentTypingTimeout);
-          agentTypingTimeout = setTimeout(() => {
-            typingIndicatorDiv.style.display = "none";
-          }, event.typing.duration || 5000);
-        }
-      });
+      typingIndicatorDiv.style.display = "block";
+      clearTimeout(agentTypingTimeout);
+      agentTypingTimeout = setTimeout(() => {
+        typingIndicatorDiv.style.display = "none";
+      }, 5000);
     }
   });
 });
-
 
 
         };
