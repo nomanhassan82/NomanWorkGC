@@ -144,6 +144,7 @@
   let agentTypingTimeout = null;
   let userTyping = false;
   let userTypingTimeout = null;
+  let lastTypingSent = 0;
   const messageInput = document.getElementById("messageInput");
   const typingIndicatorDiv = document.getElementById("typingIndicator");
 
@@ -168,6 +169,19 @@
   }
 
   window.addEventListener('load', function () {
+    let lastTypingSent = 0;
+    messageInput.addEventListener("input", () => {
+  if (!isConversationActive) return;
+
+  const now = Date.now();
+  if (now - lastTypingSent < 3000) return; // throttle: 1 per 3 seconds
+  lastTypingSent = now;
+
+  Genesys("command", "MessagingService.sendTyping", {},
+    () => console.log("✅ Typing indicator sent to agent"),
+    (err) => console.error("❌ Failed to send typing indicator:", err)
+  );
+});
     const hash = window.location.hash.substr(1);
     const params = new URLSearchParams(hash);
 
@@ -188,7 +202,7 @@
         s.charset = "utf-8";
         s.onload = function () {
           Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V8");
+            console.log("✅ SDK ready V9");
             startBtn.disabled = false;
           });
 
