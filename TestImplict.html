@@ -11,7 +11,13 @@
     margin: 0 auto;
     padding: 20px;
   }
-
+  #typingIndicator {
+  font-style: italic;
+  color: #666;
+  background: #eee;
+  border-left: 4px solid #ccc;
+  padding-left: 10px;
+}
   #chatWindow {
     border: 1px solid #ccc;
     padding: 10px;
@@ -44,7 +50,7 @@
   }
 
   .msg.user {
-    background-color: #007bff;   /* Brighter blue */
+  background-color: #007bff;   /* Brighter blue */
   color: #ffffff;              /* White text */
   align-self: flex-end;
   border-top-right-radius: 0;
@@ -121,7 +127,8 @@
   <button onclick="endConversation()">End Conversation</button>
 
   <div id="chatWindow">
-    <div id="chatContainer"></div>
+  <div id="chatContainer"></div>
+  <div id="typingIndicator" class="msg agent" style="display:none; font-style: italic;">Agent is typing...</div>
   </div>
 
   <div id="inputArea">
@@ -134,6 +141,11 @@
   <script>
   let isConversationActive = false;
   let conversationId = null;
+  let agentTypingTimeout = null;
+  let userTyping = false;
+  let userTypingTimeout = null;
+  const messageInput = document.getElementById("messageInput");
+  const typingIndicatorDiv = document.getElementById("typingIndicator");
 
   const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
   const REGION = 'cac1.pure.cloud';
@@ -176,8 +188,16 @@
         s.charset = "utf-8";
         s.onload = function () {
           Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V5");
+            console.log("✅ SDK ready V6");
             startBtn.disabled = false;
+          });
+          // Agent typing indicator
+          Genesys("subscribe", "MessagingService.agentTyping", () => {
+          typingIndicatorDiv.style.display = "block";
+          clearTimeout(agentTypingTimeout);
+          agentTypingTimeout = setTimeout(() => {
+          typingIndicatorDiv.style.display = "none";
+          }, 5000); // hide after 5s if no update
           });
 
           Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
