@@ -17,6 +17,7 @@
       background: #eee;
       border-left: 4px solid #ccc;
       padding-left: 10px;
+      display: none;
     }
     #chatWindow {
       border: 1px solid #ccc;
@@ -108,14 +109,12 @@
   <button id="loginButton">Login to Genesys</button>
   <div id="status" class="disconnected">Not authenticated</div>
 
-  <button id="startBtn" onclick="resetAndConfigure()" disabled>
-    Start or Resume Conversation
-  </button>
+  <button id="startBtn" onclick="resetAndConfigure()" disabled>Start or Resume Conversation</button>
   <button onclick="endConversation()">End Conversation</button>
 
   <div id="chatWindow">
     <div id="chatContainer"></div>
-    <div id="typingIndicator" class="msg agent" style="display:none;">Agent is typing...</div>
+    <div id="typingIndicator" class="msg agent">Agent is typing...</div>
   </div>
 
   <div id="inputArea">
@@ -130,6 +129,7 @@
     let conversationId = null;
     let agentTypingTimeout = null;
     let lastTypingSent = 0;
+
     const messageInput = document.getElementById("messageInput");
     const typingIndicatorDiv = document.getElementById("typingIndicator");
 
@@ -159,10 +159,9 @@
         const now = Date.now();
         if (now - lastTypingSent < 3000) return;
         lastTypingSent = now;
-
         Genesys("command", "MessagingService.sendTyping", {},
-          () => console.log("✅ Typing indicator sent to agent"),
-          (err) => console.error("❌ Failed to send typing indicator:", err)
+          () => console.log("✅ Typing sent"),
+          (err) => console.error("❌ Typing failed", err)
         );
       });
 
@@ -192,42 +191,26 @@
 
             Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
               const messages = event.data.messages || [];
-              messages.forEach((msg) => {
+              messages.forEach(msg => {
                 if (msg.type === "Text") {
                   if (msg.direction === "Inbound") {
                     appendMessage("You", msg.text);
                   } else if (msg.direction === "Outbound") {
-                    if (msg.originatingEntity === "Human") {
-                      appendMessage("Agent", msg.text);
-                    } else if (msg.originatingEntity === "Bot") {
-                      appendMessage("Bot", msg.text);
-                    } else {
-                      appendMessage("System", msg.text);
-                    }
+                    const sender = msg.originatingEntity === "Human" ? "Agent" : msg.originatingEntity === "Bot" ? "Bot" : "System";
+                    appendMessage(sender, msg.text);
                   }
                 }
               });
             });
 
-            Genesys("subscribe", "cxbus.message", (event) => {
-              const p = event?.payload;
-              if (
-                p?.class === "StructuredMessage" &&
-                p?.body?.type === "Event" &&
-                p?.body?.direction === "Outbound" &&
-                Array.isArray(p.body.events)
-              ) {
-                p.body.events.forEach((e) => {
-                  if (e.eventType === "Typing" && e.typing?.type === "On") {
-                    console.log("🟢 Agent is typing...");
-                    typingIndicatorDiv.style.display = "block";
-                    clearTimeout(agentTypingTimeout);
-                    agentTypingTimeout = setTimeout(() => {
-                      typingIndicatorDiv.style.display = "none";
-                    }, e.typing.duration || 5000);
-                  }
-                });
-              }
+            // ✅ Official typing indicator
+            Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
+              console.log("🟢 Agent typing received", data);
+              typingIndicatorDiv.style.display = "block";
+              clearTimeout(agentTypingTimeout);
+              agentTypingTimeout = setTimeout(() => {
+                typingIndicatorDiv.style.display = "none";
+              }, data.typing.durationMs || 5000);
             });
           };
           document.head.appendChild(s);
@@ -307,6 +290,5 @@
       );
     }
   </script>
-
 </body>
 </html>
