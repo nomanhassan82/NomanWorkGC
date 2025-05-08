@@ -229,7 +229,7 @@
       const text = input.value;
       if (!text || !isConversationActive) return;
       Genesys("command", "MessagingService.sendMessage", {
-        message: { text }
+        message: text
       },
       () => appendMessage("You", text),
       (err) => console.error("❌ sendMessage error:", err));
