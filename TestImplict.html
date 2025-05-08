@@ -148,7 +148,7 @@
         });
 
         Genesys("subscribe", "MessagingService.messageReceived", (event) => {
-          const text = event.message?.text || event.message?.body?.text || JSON.stringify(event.message);
+          const text = event.message?.text || event.message?.markdown || JSON.stringify(event.message);
           console.log("📩 Agent message received:", text);
           appendMessage("Agent", text);
         });
@@ -156,7 +156,7 @@
         Genesys("subscribe", "MessagingService.historyRetrieved", (event) => {
           console.log("📜 History retrieved:", event);
           event.messages?.forEach((msg) => {
-            const text = msg.text || msg.body?.text || JSON.stringify(msg);
+            const text = msg.text || msg.markdown || JSON.stringify(msg);
             const source = msg.source === "Visitor" ? "You" : "Agent";
             appendMessage(source, text);
           });
