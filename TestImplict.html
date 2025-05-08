@@ -11,13 +11,6 @@
       margin: 0 auto;
       padding: 20px;
     }
-    #typingIndicator {
-      font-style: italic;
-      color: #666;
-      background: #eee;
-      border-left: 4px solid #ccc;
-      padding-left: 10px;
-    }
     #chatWindow {
       border: 1px solid #ccc;
       padding: 10px;
@@ -36,7 +29,6 @@
       border-radius: 10px;
       max-width: 70%;
       word-wrap: break-word;
-      position: relative;
       font-size: 14px;
     }
     .msg .timestamp {
@@ -47,7 +39,7 @@
     }
     .msg.user {
       background-color: #007bff;
-      color: #ffffff;
+      color: #fff;
       align-self: flex-end;
       border-top-right-radius: 0;
       text-align: right;
@@ -72,6 +64,15 @@
       font-size: 12px;
       align-self: center;
       font-style: italic;
+    }
+    #typingIndicator {
+      font-style: italic;
+      color: #666;
+      background: #eee;
+      border-left: 4px solid #ccc;
+      padding-left: 10px;
+      display: none;
+      margin-top: 5px;
     }
     #inputArea {
       margin-top: 10px;
@@ -108,14 +109,12 @@
   <button id="loginButton">Login to Genesys</button>
   <div id="status" class="disconnected">Not authenticated</div>
 
-  <button id="startBtn" onclick="resetAndConfigure()" disabled>
-    Start or Resume Conversation
-  </button>
+  <button id="startBtn" onclick="resetAndConfigure()" disabled>Start or Resume Conversation</button>
   <button onclick="endConversation()">End Conversation</button>
 
   <div id="chatWindow">
     <div id="chatContainer"></div>
-    <div id="typingIndicator" class="msg agent" style="display:none; font-style: italic;">Agent is typing...</div>
+    <div id="typingIndicator" class="msg agent">Agent is typing...</div>
   </div>
 
   <div id="inputArea">
@@ -130,6 +129,7 @@
     let conversationId = null;
     let agentTypingTimeout = null;
     let lastTypingSent = 0;
+
     const messageInput = document.getElementById("messageInput");
     const typingIndicatorDiv = document.getElementById("typingIndicator");
 
@@ -159,6 +159,7 @@
         const now = Date.now();
         if (now - lastTypingSent < 3000) return;
         lastTypingSent = now;
+
         Genesys("command", "MessagingService.sendTyping", {},
           () => console.log("✅ Typing indicator sent to agent"),
           (err) => console.error("❌ Failed to send typing indicator:", err)
@@ -185,7 +186,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V12");
+              console.log("✅ SDK ready v9");
               startBtn.disabled = false;
             });
 
@@ -196,18 +197,19 @@
                   if (msg.direction === "Inbound") {
                     appendMessage("You", msg.text);
                   } else if (msg.direction === "Outbound") {
-                    const sender = msg.originatingEntity === "Human"
-                      ? "Agent"
-                      : msg.originatingEntity === "Bot"
-                        ? "Bot"
-                        : "System";
-                    appendMessage(sender, msg.text);
+                    if (msg.originatingEntity === "Human") {
+                      appendMessage("Agent", msg.text);
+                    } else if (msg.originatingEntity === "Bot") {
+                      appendMessage("Bot", msg.text);
+                    } else {
+                      appendMessage("System", msg.text);
+                    }
                   }
                 }
               });
             });
 
-            // ✅ Listen for agent typing
+            // ✅ AGENT TYPING DETECTION
             Genesys("subscribe", "MessagingService.typingReceived", function ({ data }) {
               if (data?.typing?.type === "On") {
                 console.log("🟢 Agent is typing...");
@@ -216,6 +218,10 @@
                 agentTypingTimeout = setTimeout(() => {
                   typingIndicatorDiv.style.display = "none";
                 }, data.typing.durationMs || 5000);
+              } else if (data?.typing?.type === "Off") {
+                console.log("⚪ Agent stopped typing.");
+                typingIndicatorDiv.style.display = "none";
+                clearTimeout(agentTypingTimeout);
               }
             });
           };
@@ -277,11 +283,13 @@
       const input = document.getElementById("messageInput");
       const text = input.value;
       if (!text || !isConversationActive) return;
+
       Genesys("command", "MessagingService.sendMessage", {
         message: text
       },
-        () => {}, // No duplicate message
-        (err) => console.error("❌ sendMessage error:", err));
+        () => appendMessage("You", text),
+        (err) => console.error("❌ sendMessage error:", err)
+      );
       input.value = "";
     }
 
@@ -296,6 +304,5 @@
       );
     }
   </script>
-
 </body>
 </html>
