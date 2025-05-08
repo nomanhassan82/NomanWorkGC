@@ -135,46 +135,42 @@
           debug: true
         });
 
-        Genesys("subscribe", "MessagingService.ready", () => {
-          console.log("✅ SDK ready V1");
-          document.getElementById("startBtn").disabled = false;
+        window.addEventListener("GenesysLoaded", () => {
+          Genesys("subscribe", "MessagingService.ready", () => {
+            console.log("✅ SDK ready V3");
+            document.getElementById("startBtn").disabled = false;
+          });
 
-          Genesys("subscribe", "cxbus.message", (event) => {
-            const p = event?.payload;
-            if (p?.class === "StructuredMessage" && p.direction === "Outbound") {
-              const text = p.body?.text || p.body?.markdown;
-              if (text) {
-                console.log("💬 Agent reply (StructuredMessage):", text);
-                appendMessage("Agent", text);
-              }
-            } else if (p?.class === "Message" && p.direction === "Outbound") {
-              const text = p.message;
-              if (text) {
-                console.log("💬 Agent reply (Message):", text);
-                appendMessage("Agent", text);
-              }
+          Genesys("subscribe", "MessagingService.conversationStarted", (e) => {
+            console.log("🟢 Conversation started:", e);
+            isConversationActive = true;
+            conversationId = e.conversationId;
+            document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
+          });
+
+          Genesys("subscribe", "MessagingService.messageReceived", (event) => {
+            const msg = event.message;
+            const text = typeof msg === 'string' ? msg : msg?.text || msg?.body?.text;
+            if (text) {
+              console.log("💬 Agent message:", text);
+              appendMessage("Agent", text);
+            } else {
+              console.log("📦 Received non-text message:", msg);
             }
           });
-        });
 
-        Genesys("subscribe", "MessagingService.conversationStarted", (e) => {
-          console.log("🟢 Conversation started:", e);
-          isConversationActive = true;
-          conversationId = e.conversationId;
-          document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
-        });
-
-        Genesys("subscribe", "MessagingService.historyRetrieved", (event) => {
-          console.log("📜 History retrieved:", event);
-          event.messages?.forEach((msg) => {
-            const text = msg.text || msg.markdown || JSON.stringify(msg);
-            const source = msg.source === "Visitor" ? "You" : "Agent";
-            appendMessage(source, text);
+          Genesys("subscribe", "MessagingService.historyRetrieved", (event) => {
+            console.log("📜 History retrieved:", event);
+            event.messages?.forEach((msg) => {
+              const text = msg.text || msg.markdown || JSON.stringify(msg);
+              const source = msg.source === "Visitor" ? "You" : "Agent";
+              appendMessage(source, text);
+            });
           });
-        });
 
-        Genesys("subscribe", "MessagingService.error", (e) => {
-          console.error("❌ SDK error:", e);
+          Genesys("subscribe", "MessagingService.error", (e) => {
+            console.error("❌ SDK error:", e);
+          });
         });
 
       } else if (params.has('error')) {
@@ -211,66 +207,46 @@
       );
     }
 
-// REPLACE YOUR configureConversation FUNCTION WITH THIS:
-function configureConversation(retry) {
-  Genesys("command", "MessagingService.configureConversation", {},
-    (resp) => {
-      console.log("✅ configureConversation:", resp);
-      if (resp?.isSessionActive) {
-        console.log("▶️ Resuming existing session:", resp.conversationId);
-        isConversationActive = true;
-        conversationId = resp.conversationId;
-        
-        // Critical addition: Fetch history for existing session
-        Genesys("command", "MessagingService.fetchHistory", {
-          pageSize: 50
-        });
-      } else {
-        // Use joinConversation instead of startConversation
-        Genesys("command", "MessagingService.joinConversation", {
-          channel: { type: "web" }
-        },
+    function configureConversation(retry) {
+      Genesys("command", "MessagingService.configureConversation", {},
         (resp) => {
-          console.log("✅ New conversation started:", resp.conversationId);
-          isConversationActive = true;
-          conversationId = resp.conversationId;
+          if (resp?.isSessionActive) {
+            isConversationActive = true;
+            conversationId = resp.conversationId;
+            document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
+            console.log("▶️ Resuming session:", conversationId);
+          } else {
+            startNewConversation();
+          }
         },
         (err) => {
-          console.error("❌ joinConversation error:", err);
+          console.error("❌ configureConversation error:", err);
+          if (!retry) resetAndConfigure(true);
         });
-      }
-    },
-    (err) => {
-      console.error("❌ configureConversation error:", err);
     }
-  );
-}
 
-// REMOVE THE startNewConversation FUNCTION ENTIRELY
-
-
- //   function startNewConversation() {
- //     Genesys("command", "MessagingService.joinConversation", {
-  //      channel: { type: "web" }
-  //    },
-  //    (resp) => {
-  //      console.log("✅ New conversation started:", resp);
-   //     isConversationActive = true;
-   //     conversationId = resp.conversationId;
-   //     document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
- //     },
- //     (err) => {
- //       console.error("❌ joinConversation error:", err);
-//        alert("❌ Failed to start conversation.");
-//      });
-//    }
+    function startNewConversation() {
+      Genesys("command", "MessagingService.joinConversation", {
+        channel: { type: "web" }
+      },
+      (resp) => {
+        console.log("✅ New conversation started:", resp);
+        isConversationActive = true;
+        conversationId = resp.conversationId;
+        document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
+      },
+      (err) => {
+        console.error("❌ joinConversation error:", err);
+        alert("❌ Failed to start conversation.");
+      });
+    }
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
       const text = input.value;
       if (!text || !isConversationActive) return;
       Genesys("command", "MessagingService.sendMessage", {
-        message: text
+        message: text 
       },
       () => appendMessage("You", text),
       (err) => console.error("❌ sendMessage error:", err));
