@@ -142,8 +142,6 @@
   let isConversationActive = false;
   let conversationId = null;
   let agentTypingTimeout = null;
-  let userTyping = false;
-  let userTypingTimeout = null;
   let lastTypingSent = 0;
   const messageInput = document.getElementById("messageInput");
   const typingIndicatorDiv = document.getElementById("typingIndicator");
@@ -157,20 +155,19 @@
   const statusDiv = document.getElementById('status');
   const startBtn = document.getElementById('startBtn');
 
-function appendMessage(sender, text) {
+  function appendMessage(sender, text) {
     if (!text || typeof text !== 'string') return;
     const container = document.getElementById("chatContainer");
     const div = document.createElement("div");
     const timestamp = new Date().toLocaleTimeString();
-    div.className = "msg " + sender.toLowerCase(); // "user", "agent", or "bot"
+    div.className = "msg " + sender.toLowerCase();
     div.innerHTML = `<strong>${sender}:</strong> ${text}<span class="timestamp">${timestamp}</span>`;
     container.appendChild(div);
     document.getElementById("chatWindow").scrollTop = container.scrollHeight;
   }
 
   window.addEventListener('load', function () {
-    let lastTypingSent = 0;
-
+    // Typing indicator from user
     messageInput.addEventListener("input", () => {
       if (!isConversationActive) return;
       const now = Date.now();
@@ -192,6 +189,29 @@ function appendMessage(sender, text) {
       statusDiv.className = 'connected';
       window.history.replaceState({}, document.title, window.location.pathname);
 
+      // ✅ SUBSCRIBE BEFORE SDK LOADS
+      Genesys("subscribe", "cxbus.message", (event) => {
+        const p = event?.payload;
+        if (
+          p?.class === "StructuredMessage" &&
+          p?.body?.type === "Event" &&
+          p?.body?.direction === "Outbound" &&
+          Array.isArray(p.body.events)
+        ) {
+          p.body.events.forEach((e) => {
+            if (e.eventType === "Typing" && e.typing?.type === "On") {
+              console.log("🟢 Agent is typing...");
+              typingIndicatorDiv.style.display = "block";
+              clearTimeout(agentTypingTimeout);
+              agentTypingTimeout = setTimeout(() => {
+                typingIndicatorDiv.style.display = "none";
+              }, e.typing.duration || 5000);
+            }
+          });
+        }
+      });
+
+      // ✅ Load SDK
       (function (g, e, n, es) {
         g["_genesysJs"] = e;
         g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
@@ -203,11 +223,10 @@ function appendMessage(sender, text) {
         s.charset = "utf-8";
         s.onload = function () {
           Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V13");
+            console.log("✅ SDK ready V1");
             startBtn.disabled = false;
           });
 
-          // Handle text messages only
           Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
             const messages = event.data.messages || [];
             messages.forEach((msg) => {
@@ -225,28 +244,6 @@ function appendMessage(sender, text) {
                 }
               }
             });
-          });
-
-          // ✅ Agent typing from raw WebSocket message
-          Genesys("subscribe", "cxbus.message", (event) => {
-            const p = event?.payload;
-            if (
-              p?.class === "StructuredMessage" &&
-              p?.body?.type === "Event" &&
-              p?.body?.direction === "Outbound" &&
-              Array.isArray(p.body.events)
-            ) {
-              p.body.events.forEach((e) => {
-                if (e.eventType === "Typing" && e.typing?.type === "On") {
-                  console.log("🟢 Agent is typing...");
-                  typingIndicatorDiv.style.display = "block";
-                  clearTimeout(agentTypingTimeout);
-                  agentTypingTimeout = setTimeout(() => {
-                    typingIndicatorDiv.style.display = "none";
-                  }, e.typing.duration || 5000);
-                }
-              });
-            }
           });
         };
         document.head.appendChild(s);
@@ -325,6 +322,7 @@ function appendMessage(sender, text) {
       (err) => console.error("❌ endConversation error:", err)
     );
   }
+
 </script>
 
 </body>
