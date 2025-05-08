@@ -188,16 +188,8 @@
         s.charset = "utf-8";
         s.onload = function () {
           Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V7");
+            console.log("✅ SDK ready V8");
             startBtn.disabled = false;
-          });
-          // Agent typing indicator
-          Genesys("subscribe", "MessagingService.agentTyping", () => {
-          typingIndicatorDiv.style.display = "block";
-          clearTimeout(agentTypingTimeout);
-          agentTypingTimeout = setTimeout(() => {
-          typingIndicatorDiv.style.display = "none";
-          }, 5000); // hide after 5s if no update
           });
 
 Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
@@ -221,6 +213,7 @@ Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
 
     // Handle agent typing indicator
     if (msg.type === "Typing" && msg.direction === "Outbound" && msg.originatingEntity === "Human") {
+      console.log("👉 Typing event received:", msg);  // Add this line for debugging
       typingIndicatorDiv.style.display = "block";
       clearTimeout(agentTypingTimeout);
       agentTypingTimeout = setTimeout(() => {
