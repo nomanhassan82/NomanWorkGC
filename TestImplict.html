@@ -44,6 +44,10 @@
       align-self: flex-start;
       color: #2e7d32;
     }
+    .msg.typing {
+      font-style: italic;
+      color: #888;
+    }
     #chatContainer {
       display: flex;
       flex-direction: column;
@@ -96,6 +100,7 @@
   <script>
     let isConversationActive = false;
     let conversationId = null;
+    let typingTimeout;
 
     const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
     const REGION = 'cac1.pure.cloud';
@@ -137,31 +142,31 @@
 
         window.addEventListener("GenesysLoaded", () => {
           Genesys("subscribe", "MessagingService.ready", () => {
-            console.log("✅ SDK ready V4");
+            console.log("✅ SDK ready V5");
             document.getElementById("startBtn").disabled = false;
           });
 
           Genesys("subscribe", "cxbus.message", (event) => {
             const p = event?.payload;
             if (!p || p.direction !== "Outbound") return;
-
             if (p.class === "StructuredMessage") {
               const text = p.body?.text || p.body?.markdown;
-              if (text) {
-                console.log("💬 StructuredMessage:", text);
-                appendMessage("Agent", text);
-              }
+              if (text) appendMessage("Agent", text);
             } else if (p.class === "Message") {
               const text = p.message;
-              if (text) {
-                console.log("💬 Agent Message:", text);
-                appendMessage("Agent", text);
-              }
+              if (text) appendMessage("Agent", text);
+            }
+          });
+
+          Genesys("subscribe", "MessagingService.typingEvent", (event) => {
+            if (event.typing === 'On') {
+              showTypingIndicator();
+            } else {
+              clearTypingIndicator();
             }
           });
 
           Genesys("subscribe", "MessagingService.conversationStarted", (e) => {
-            console.log("🟢 Conversation started:", e);
             isConversationActive = true;
             conversationId = e.conversationId;
             document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
@@ -170,16 +175,10 @@
           Genesys("subscribe", "MessagingService.messageReceived", (event) => {
             const msg = event.message;
             const text = typeof msg === 'string' ? msg : msg?.text || msg?.body?.text;
-            if (text) {
-              console.log("💬 Agent message:", text);
-              appendMessage("Agent", text);
-            } else {
-              console.log("📦 Received non-text message:", msg);
-            }
+            if (text) appendMessage("Agent", text);
           });
 
           Genesys("subscribe", "MessagingService.historyRetrieved", (event) => {
-            console.log("📜 History retrieved:", event);
             event.messages?.forEach((msg) => {
               const text = msg.text || msg.markdown || JSON.stringify(msg);
               const source = msg.source === "Visitor" ? "You" : "Agent";
@@ -204,6 +203,7 @@
     });
 
     function appendMessage(source, text) {
+      clearTypingIndicator();
       if (!text || typeof text !== 'string') return;
       const container = document.getElementById("chatContainer");
       const div = document.createElement("div");
@@ -212,6 +212,22 @@
       div.innerHTML = `${source}: ${text}<span class="timestamp">${timestamp}</span>`;
       container.appendChild(div);
       scrollChatToBottom();
+    }
+
+    function showTypingIndicator() {
+      clearTypingIndicator();
+      const container = document.getElementById("chatContainer");
+      const div = document.createElement("div");
+      div.className = "msg agent typing";
+      div.id = "typingIndicator";
+      div.innerText = "Agent is typing...";
+      container.appendChild(div);
+      scrollChatToBottom();
+    }
+
+    function clearTypingIndicator() {
+      const indicator = document.getElementById("typingIndicator");
+      if (indicator) indicator.remove();
     }
 
     function scrollChatToBottom() {
@@ -233,7 +249,6 @@
             isConversationActive = true;
             conversationId = resp.conversationId;
             document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
-            console.log("▶️ Resuming session:", conversationId);
           } else {
             startNewConversation();
           }
@@ -249,7 +264,6 @@
         channel: { type: "web" }
       },
       (resp) => {
-        console.log("✅ New conversation started:", resp);
         isConversationActive = true;
         conversationId = resp.conversationId;
         document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
@@ -275,7 +289,6 @@
     function endConversation() {
       Genesys("command", "MessagingService.clearConversation", {},
         () => {
-          console.log("🛑 Conversation ended.");
           isConversationActive = false;
           conversationId = null;
           document.getElementById("conversationInfo").innerText = "";
