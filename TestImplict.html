@@ -139,23 +139,21 @@
           console.log("✅ SDK ready v3");
           document.getElementById("startBtn").disabled = false;
 
-          Genesys("subscribe", "cxbus.message", (event) => {
-            const p = event?.payload;
-            if (p?.class === "StructuredMessage" && p.direction === "Outbound") {
-              const text = p.body?.text || p.body?.markdown;
-              if (text) {
-                console.log("💬 Agent reply (StructuredMessage):", text);
-                appendMessage("Agent", text);
-              }
-            } else if (p?.class === "Message" && p.direction === "Outbound") {
-              const text = p.message;
-              if (text) {
-                console.log("💬 Agent reply (Message):", text);
-                appendMessage("Agent", text);
-              }
-            }
-          });
-        });
+Genesys("subscribe", "cxbus.message", (event) => {
+  const p = event?.payload;
+  console.log("📦 cxbus.message payload:", p); // NEW LINE
+
+  if (p?.class === "StructuredMessage" && p.direction === "Outbound") {
+    const text = p.body?.text || p.body?.markdown;
+    console.log("💬 Agent reply (StructuredMessage):", text); // NEW LINE
+    if (text) appendMessage("Agent", text);
+  } else if (p?.class === "Message" && p.direction === "Outbound") {
+    const text = p.message;
+    console.log("💬 Agent reply (Message):", text); // NEW LINE
+    if (text) appendMessage("Agent", text);
+  }
+});
+
 
         Genesys("subscribe", "MessagingService.conversationStarted", (e) => {
           console.log("🟢 Conversation started:", e);
@@ -188,16 +186,17 @@
       window.location.href = authUrl;
     });
 
-    function appendMessage(source, text) {
-      if (!text) return;
-      const container = document.getElementById("chatContainer");
-      const div = document.createElement("div");
-      const timestamp = new Date().toLocaleTimeString();
-      div.className = "msg " + (source === "Visitor" || source === "You" ? "user" : "agent");
-      div.innerHTML = `${source}: ${text}<span class="timestamp">${timestamp}</span>`;
-      container.appendChild(div);
-      scrollChatToBottom();
-    }
+function appendMessage(source, text) {
+  if (!text || typeof text !== 'string') return;
+  const container = document.getElementById("chatContainer");
+  const div = document.createElement("div");
+  const timestamp = new Date().toLocaleTimeString();
+  div.className = "msg " + (source === "Visitor" || source === "You" ? "user" : "agent");
+  div.innerHTML = `${source}: ${text}<span class="timestamp">${timestamp}</span>`;
+  container.appendChild(div);
+  scrollChatToBottom();
+}
+
 
     function scrollChatToBottom() {
       const chat = document.getElementById("chatWindow");
