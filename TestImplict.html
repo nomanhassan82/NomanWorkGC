@@ -132,21 +132,32 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready");
+              console.log("✅ SDK ready V1");
               startBtn.disabled = false;
             });
 
-            Genesys("subscribe", "cxbus.message", (event) => {
-              const p = event?.payload;
-              if (!p || p.direction !== "Outbound") return;
-              if (p.class === "StructuredMessage") {
-                const text = p.body?.text || p.body?.markdown;
-                if (text) appendMessage("Agent", text);
-              } else if (p.class === "Message") {
-                const text = typeof p.message === "string" ? p.message : p.message?.text;
-                if (text) appendMessage("Agent", text);
-              }
-            });
+Genesys("subscribe", "cxbus.message", (event) => {
+  const p = event?.payload;
+  if (!p || p.direction !== "Outbound") return;
+
+  let text = null;
+
+  if (p.body?.text) {
+    text = p.body.text; // standard agent reply
+  } else if (p.message?.text) {
+    text = p.message.text; // fallback for message format
+  } else if (typeof p.message === 'string') {
+    text = p.message; // plain text message
+  }
+
+  if (text) {
+    appendMessage("Agent", text);
+    console.log("✅ Agent message rendered:", text);
+  } else {
+    console.warn("⚠️ Unrecognized agent payload format:", p);
+  }
+});
+
 
             Genesys("subscribe", "MessagingService.messageReceived", (event) => {
               const msg = event.message;
