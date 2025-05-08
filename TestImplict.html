@@ -163,7 +163,7 @@
     });
 
     loginButton.addEventListener('click', function () {
-      const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=web-messaging`;
+      const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
       window.location.href = authUrl;
     });
 
