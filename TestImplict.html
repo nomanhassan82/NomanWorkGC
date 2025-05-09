@@ -142,13 +142,12 @@
     const statusDiv = document.getElementById('status');
     const startBtn = document.getElementById('startBtn');
 
-    function appendMessage(sender, text) {
-      if (!text) return;
+    function appendMessage(sender, content) {
       const container = document.getElementById("chatContainer");
       const div = document.createElement("div");
       const timestamp = new Date().toLocaleTimeString();
       div.className = "msg " + sender.toLowerCase();
-      div.innerHTML = `<strong>${sender}:</strong> ${text}<span class="timestamp">${timestamp}</span>`;
+      div.innerHTML = `<strong>${sender}:</strong> ${content}<span class="timestamp">${timestamp}</span>`;
       container.appendChild(div);
       document.getElementById("chatWindow").scrollTop = container.scrollHeight;
     }
@@ -186,7 +185,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V12");
+              console.log("✅ SDK ready V13");
               startBtn.disabled = false;
             });
 
@@ -203,13 +202,12 @@
                         if (response?.downloadUrl) {
                           appendMessage("Agent", `<img src="${response.downloadUrl}" style="max-width: 200px;" />`);
                         } else {
-                          console.warn("No downloadUrl in getFile response:", response);
-                          appendMessage("Agent", "📎 Received an attachment, but it couldn't be displayed.");
+                          appendMessage("Agent", `📎 Attachment: ${item.attachment.name || 'Unnamed file'} (${item.attachment?.size || '?'} bytes)`);
                         }
                       },
                       (err) => {
                         console.error("❌ Failed to get agent file:", err);
-                        appendMessage("Agent", "📎 Failed to load agent's attachment.");
+                        appendMessage("Agent", `📎 ${item.attachment?.name || 'Unknown'} — failed to load.`);
                       });
                     }
                   });
@@ -231,7 +229,6 @@
 
             Genesys("subscribe", "MessagingService.typingReceived", function ({ data }) {
               if (data?.typing?.type === "On") {
-                console.log("🟢 Agent is typing...");
                 typingIndicatorDiv.style.display = "block";
                 clearTimeout(agentTypingTimeout);
                 agentTypingTimeout = setTimeout(() => {
