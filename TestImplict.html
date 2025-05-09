@@ -190,7 +190,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready v25");
+              console.log("✅ SDK ready v55");
               startBtn.disabled = false;
             });
 
@@ -218,7 +218,7 @@
                   }
                 });
 
-                if (msg.type === "Text") {
+                if (msg.type === "Text" && msg.text) {
                   if (msg.direction === "Inbound") {
                     appendMessage("You", msg.text);
                   } else if (msg.direction === "Outbound") {
