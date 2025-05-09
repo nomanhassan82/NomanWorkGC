@@ -190,33 +190,35 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready v15");
+              console.log("✅ SDK ready v25");
               startBtn.disabled = false;
             });
 
             Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
               const messages = event.data.messages || [];
               messages.forEach((msg) => {
-                if (msg.content && Array.isArray(msg.content)) {
-                  msg.content.forEach(item => {
-                    if (item.contentType === "Attachment" && item.attachment?.id) {
-                      Genesys("command", "MessagingService.getFile", {
-                        fileId: item.attachment.id
-                      },
-                      (response) => {
-                        if (response?.downloadUrl) {
-                          appendMessage("Agent", `<img src="${response.downloadUrl}" style="max-width: 200px;" />`);
-                        } else {
-                          appendMessage("Agent", `📎 Attachment: ${item.attachment.name || 'Unnamed file'} (${item.attachment?.size || '?'} bytes)`);
-                        }
-                      },
-                      (err) => {
-                        console.error("❌ Failed to get agent file:", err);
-                        appendMessage("Agent", `📎 ${item.attachment?.name || 'Unknown'} — failed to load.`);
-                      });
-                    }
-                  });
-                } else if (msg.type === "Text") {
+                const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
+                attachments.forEach(item => {
+                  const attachment = item.attachment || item;
+                  if (attachment?.id) {
+                    Genesys("command", "MessagingService.getFile", {
+                      fileId: attachment.id
+                    },
+                    (response) => {
+                      if (response?.downloadUrl) {
+                        appendMessage("Agent", `<img src="${response.downloadUrl}" style="max-width: 200px;" alt="${attachment.name || 'image'}" />`);
+                      } else {
+                        appendMessage("Agent", `📎 Attachment: ${attachment.name || 'Unnamed file'} (${attachment?.size || '?'} bytes)`);
+                      }
+                    },
+                    (err) => {
+                      console.error("❌ Failed to get agent file:", err);
+                      appendMessage("Agent", `📎 ${attachment?.name || 'Unknown'} — failed to load.`);
+                    });
+                  }
+                });
+
+                if (msg.type === "Text") {
                   if (msg.direction === "Inbound") {
                     appendMessage("You", msg.text);
                   } else if (msg.direction === "Outbound") {
