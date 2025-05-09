@@ -253,7 +253,7 @@
     }
 
     Genesys("subscribe", "MessagingService.ready", () => {
-      console.log("✅ SDK ready V10.1");
+      console.log("✅ SDK ready V15");
       startBtn.disabled = false;
     });
 
@@ -261,15 +261,19 @@
       const messages = event.data.messages || [];
       messages.forEach((msg) => {
         const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
-        if (attachments.length) {
+        if (attachments && attachments.length) {
           attachments.forEach(item => {
             const attachment = item.attachment || item;
             if (attachment?.id) {
               Genesys("command", "MessagingService.getFile", { fileId: attachment.id },
                 (fileInfo) => {
-                  const name = fileInfo?.name || fileInfo?.filename || 'Unnamed file';
-                  const size = fileInfo?.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
-                  if (fileInfo?.mimeType?.startsWith("image/")) {
+                  if (!fileInfo || !fileInfo.downloadUrl) {
+                    appendMessage("Agent", `📎 Attachment — failed to load.`);
+                    return;
+                  }
+                  const name = fileInfo.name || fileInfo.filename || 'Unnamed file';
+                  const size = fileInfo.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
+                  if (fileInfo.mimeType?.startsWith("image/")) {
                     appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
                   } else {
                     appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
