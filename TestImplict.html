@@ -83,6 +83,9 @@
       flex-grow: 1;
       padding: 6px;
     }
+    #attachmentInput {
+      padding: 6px;
+    }
     #conversationInfo {
       font-size: 12px;
       color: #555;
@@ -119,6 +122,7 @@
 
   <div id="inputArea">
     <input id="messageInput" placeholder="Type a message..." />
+    <input type="file" id="attachmentInput" accept="image/*" />
     <button onclick="sendMessage()">Send</button>
   </div>
 
@@ -131,6 +135,7 @@
     let lastTypingSent = 0;
 
     const messageInput = document.getElementById("messageInput");
+    const attachmentInput = document.getElementById("attachmentInput");
     const typingIndicatorDiv = document.getElementById("typingIndicator");
 
     const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
@@ -185,7 +190,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V13");
+              console.log("✅ SDK ready v15");
               startBtn.disabled = false;
             });
 
@@ -296,16 +301,38 @@
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
+      const fileInput = document.getElementById("attachmentInput");
       const text = input.value;
-      if (!text || !isConversationActive) return;
+      const file = fileInput.files[0];
 
-      Genesys("command", "MessagingService.sendMessage", {
-        message: text
-      },
-        () => appendMessage("You", text),
-        (err) => console.error("❌ sendMessage error:", err)
-      );
-      input.value = "";
+      if (!isConversationActive) return;
+
+      if (text) {
+        Genesys("command", "MessagingService.sendMessage", {
+          message: text
+        },
+          () => appendMessage("You", text),
+          (err) => console.error("❌ sendMessage error:", err)
+        );
+        input.value = "";
+      }
+
+      if (file) {
+        Genesys("command", "MessagingService.requestUpload", {
+          file,
+          fileName: file.name,
+          mimeType: file.type
+        },
+        (res) => {
+          console.log("✅ File upload response:", res);
+          appendMessage("You", `📤 Sent: ${file.name}`);
+        },
+        (err) => {
+          console.error("❌ File upload failed:", err);
+          appendMessage("System", `❌ Upload failed: ${file.name}`);
+        });
+        fileInput.value = "";
+      }
     }
 
     function endConversation() {
