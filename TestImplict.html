@@ -129,23 +129,22 @@
   <div id="conversationInfo"></div>
 
   <script>
-        let isConversationActive = false;
-    let conversationId = null;
-    let agentTypingTimeout = null;
-    let lastTypingSent = 0;
-
-    const messageInput = document.getElementById("messageInput");
-    const attachmentInput = document.getElementById("attachmentInput");
-    const typingIndicatorDiv = document.getElementById("typingIndicator");
-
     const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
     const REGION = 'cac1.pure.cloud';
     const DEPLOYMENT_ID = '4411676a-d200-478c-8adc-1312bb86bb84';
     const REDIRECT_URI = encodeURIComponent(window.location.origin + window.location.pathname);
 
-    const loginButton = document.getElementById('loginButton');
-    const statusDiv = document.getElementById('status');
-    const startBtn = document.getElementById('startBtn');
+    const messageInput = document.getElementById("messageInput");
+    const attachmentInput = document.getElementById("attachmentInput");
+    const typingIndicatorDiv = document.getElementById("typingIndicator");
+    const loginButton = document.getElementById("loginButton");
+    const statusDiv = document.getElementById("status");
+    const startBtn = document.getElementById("startBtn");
+
+    let isConversationActive = false;
+    let conversationId = null;
+    let agentTypingTimeout = null;
+    let lastTypingSent = 0;
 
     function appendMessage(sender, html) {
       const container = document.getElementById("chatContainer");
@@ -157,185 +156,46 @@
       document.getElementById("chatWindow").scrollTop = container.scrollHeight;
     }
 
-    window.addEventListener('load', function () {
-      messageInput.addEventListener("input", () => {
-        if (!isConversationActive) return;
-        const now = Date.now();
-        if (now - lastTypingSent < 3000) return;
-        lastTypingSent = now;
+    function handleAgentAttachment(attachment) {
+      if (!attachment?.id) return;
+      Genesys("command", "MessagingService.getFile", { fileId: attachment.id },
+        (fileInfo) => {
+          const downloadUrl = fileInfo?.downloadUrl;
+          const name = fileInfo?.name || fileInfo?.filename || 'Unnamed file';
+          const size = fileInfo?.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
+          const mimeType = fileInfo?.mimeType || '';
 
-        Genesys("command", "MessagingService.sendTyping", {},
-          () => console.log("✅ Typing indicator sent to agent"),
-          (err) => console.error("❌ Failed to send typing indicator:", err)
-        );
-      });
+          if (!downloadUrl) {
+            appendMessage("Agent", `📎 ${name}${size} — failed to load.`);
+            return;
+          }
 
-      const hash = window.location.hash.substr(1);
-      const params = new URLSearchParams(hash);
-
-      if (params.has('access_token')) {
-        const token = params.get('access_token');
-        statusDiv.textContent = 'Authenticated with Genesys';
-        statusDiv.className = 'connected';
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        (function (g, e, n, es) {
-          g["_genesysJs"] = e;
-          g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
-          g[e].t = +new Date();
-          g[e].c = es;
-          const s = document.createElement("script");
-          s.async = true;
-          s.src = n;
-          s.charset = "utf-8";
-          s.onload = function () {
-            Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V70");
-              startBtn.disabled = false;
-            });
-
-            Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
-              const messages = event.data.messages || [];
-              messages.forEach((msg) => {
-                const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
-                if (attachments.length) {
-                  attachments.forEach(item => {
-                    const attachment = item.attachment || item;
-                    if (attachment?.id) {
-                      Genesys("command", "MessagingService.getFile", {
-                        fileId: attachment.id
-                      },
-                      (fileInfo) => {
-                        const name = fileInfo?.name || fileInfo?.filename || 'Unnamed file';
-                        const size = fileInfo?.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
-                        if (fileInfo?.mimeType?.startsWith("image/")) {
-                          appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
-                        } else {
-                          appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
-                        }
-                      },
-                      (err) => {
-                        console.error("❌ Failed to get file:", err);
-                        appendMessage("Agent", `📎 Attachment — failed to load.`);
-                      });
-                    }
-                  });
-                }
-
-                if (msg.type === "Text" && msg.text) {
-                  const sender = msg.direction === "Inbound" ? "You" : (msg.originatingEntity === "Human" ? "Agent" : msg.originatingEntity === "Bot" ? "Bot" : "System");
-                  appendMessage(sender, msg.text);
-                }
-              });
-            });
-
-            Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
-              if (data?.typing?.type === "On") {
-                typingIndicatorDiv.style.display = "block";
-                clearTimeout(agentTypingTimeout);
-                agentTypingTimeout = setTimeout(() => {
-                  typingIndicatorDiv.style.display = "none";
-                }, data.typing.durationMs || 5000);
-              } else {
-                typingIndicatorDiv.style.display = "none";
-                clearTimeout(agentTypingTimeout);
-              }
-            });
-          };
-          document.head.appendChild(s);
-        })(window, 'Genesys', 'https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js', {
-          environment: 'prod-cac1',
-          deploymentId: DEPLOYMENT_ID,
-          messenger: { headlessMode: true, jwt: token },
-          debug: true
-        });
-      }
-    });
-
-    loginButton.addEventListener('click', function () {
-      const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
-      window.location.href = authUrl;
-    });
-
-    function resetAndConfigure(retry = false) {
-      Genesys("command", "MessagingService.clearConversation", {},
-        () => configureConversation(retry),
-        () => configureConversation(retry)
-      );
-    }
-
-    function configureConversation(retry) {
-      Genesys("command", "MessagingService.configureConversation", {},
-        (resp) => {
-          if (resp?.isSessionActive) {
-            isConversationActive = true;
-            conversationId = resp.conversationId;
-            document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
+          if (mimeType.startsWith("image/")) {
+            appendMessage("Agent", `<img src="${downloadUrl}" alt="${name}" style="max-width:200px">`);
           } else {
-            startNewConversation();
+            appendMessage("Agent", `📎 <a href="${downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
           }
         },
         (err) => {
-          console.error("❌ configureConversation error:", err);
-          if (!retry) resetAndConfigure(true);
+          console.error("❌ Failed to get file:", err);
+          appendMessage("Agent", `📎 Attachment — failed to load.`);
         });
     }
 
-    function startNewConversation() {
-      Genesys("command", "MessagingService.joinConversation", {
-        channel: { type: "web" }
-      },
-        (resp) => {
-          isConversationActive = true;
-          conversationId = resp.conversationId;
-          document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
-        },
-        (err) => {
-          console.error("❌ joinConversation error:", err);
-          alert("❌ Failed to start conversation.");
-        });
-    }
-
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const fileInput = document.getElementById("attachmentInput");
-      const text = input.value;
-      const file = fileInput.files[0];
-
-      if (!isConversationActive) return;
-
-      if (text) {
-        Genesys("command", "MessagingService.sendMessage", {
-          message: text
-        },
-          () => appendMessage("You", text),
-          (err) => console.error("❌ sendMessage error:", err)
-        );
-        input.value = "";
+    // Typing indicator subscription
+    Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
+      if (data?.typing?.type === "On") {
+        typingIndicatorDiv.style.display = "block";
+        clearTimeout(agentTypingTimeout);
+        agentTypingTimeout = setTimeout(() => {
+          typingIndicatorDiv.style.display = "none";
+        }, data.typing.durationMs || 5000);
+      } else {
+        typingIndicatorDiv.style.display = "none";
+        clearTimeout(agentTypingTimeout);
       }
-
-      if (file) {
-        if (file.size > 5 * 1024 * 1024) {
-          appendMessage("System", `❌ File too large: ${file.name} (${Math.round(file.size / 1024 / 1024)} MB). Limit is 5 MB.`);
-          return;
-        }
-
-        Genesys("command", "MessagingService.requestUpload", {
-          file,
-          fileName: file.name,
-          mimeType: file.type
-        },
-        (res) => {
-          console.log("✅ File upload response:", res);
-          appendMessage("You", `📤 Sent: ${file.name}`);
-        },
-        (err) => {
-          console.error("❌ File upload failed:", err);
-          appendMessage("System", `❌ Upload failed: ${file.name}`);
-        });
-        fileInput.value = "";
-      }
-    }
+    });
   </script>
+  <script src="https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js" charset="utf-8"></script>
 </body>
 </html>
