@@ -186,7 +186,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V11");
+              console.log("✅ SDK ready V12");
               startBtn.disabled = false;
             });
 
@@ -200,9 +200,17 @@
                         fileId: item.attachment.id
                       },
                       (response) => {
-                        appendMessage("Agent", `<img src="${response.downloadUrl}" style="max-width: 200px;" />`);
+                        if (response?.downloadUrl) {
+                          appendMessage("Agent", `<img src="${response.downloadUrl}" style="max-width: 200px;" />`);
+                        } else {
+                          console.warn("No downloadUrl in getFile response:", response);
+                          appendMessage("Agent", "📎 Received an attachment, but it couldn't be displayed.");
+                        }
                       },
-                      (err) => console.error("❌ Failed to get agent file:", err));
+                      (err) => {
+                        console.error("❌ Failed to get agent file:", err);
+                        appendMessage("Agent", "📎 Failed to load agent's attachment.");
+                      });
                     }
                   });
                 } else if (msg.type === "Text") {
