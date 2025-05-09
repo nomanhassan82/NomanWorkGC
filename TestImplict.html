@@ -140,13 +140,30 @@
 </div>
 <div id="conversationInfo"></div>
 <script>
-function onGenesysLoaded() {
-  const statusDiv = document.getElementById('status');
-  const startBtn = document.getElementById('startBtn');
-  const typingIndicator = document.getElementById('typingIndicator');
+let isConversationActive = false;
+let conversationId = null;
+let agentTypingTimeout = null;
+let lastTypingSent = 0;
 
+const messageInput = document.getElementById("messageInput");
+const attachmentInput = document.getElementById("attachmentInput");
+const typingIndicator = document.getElementById("typingIndicator");
+const statusDiv = document.getElementById('status');
+const startBtn = document.getElementById('startBtn');
+
+function appendMessage(sender, html) {
+  const container = document.getElementById("chatContainer");
+  const div = document.createElement("div");
+  const timestamp = new Date().toLocaleTimeString();
+  div.className = "msg " + sender.toLowerCase();
+  div.innerHTML = `<strong>${sender}:</strong><br>${html}<br><span class="timestamp">${timestamp}</span>`;
+  container.appendChild(div);
+  document.getElementById("chatWindow").scrollTop = container.scrollHeight;
+}
+
+function onGenesysLoaded() {
   Genesys("subscribe", "MessagingService.ready", () => {
-    console.log("✅ SDK ready");
+    console.log("✅ SDK ready V40");
     startBtn.disabled = false;
     statusDiv.textContent = 'Authenticated with Genesys';
     statusDiv.className = 'connected';
@@ -155,13 +172,13 @@ function onGenesysLoaded() {
   Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
     if (data?.typing?.type === "On") {
       typingIndicator.style.display = "block";
-      clearTimeout(window.agentTypingTimeout);
-      window.agentTypingTimeout = setTimeout(() => {
+      clearTimeout(agentTypingTimeout);
+      agentTypingTimeout = setTimeout(() => {
         typingIndicator.style.display = "none";
       }, data.typing.durationMs || 5000);
     } else {
       typingIndicator.style.display = "none";
-      clearTimeout(window.agentTypingTimeout);
+      clearTimeout(agentTypingTimeout);
     }
   });
 
@@ -169,15 +186,116 @@ function onGenesysLoaded() {
     const container = document.getElementById("chatContainer");
     const messages = event.data.messages || [];
     messages.forEach((msg) => {
+      const sender = msg.direction === "Inbound" ? "You" : (msg.originatingEntity === "Human" ? "Agent" : "System");
       if (msg.text) {
-        const div = document.createElement("div");
-        div.className = "msg " + (msg.direction === "Inbound" ? "user" : "agent");
-        const timestamp = new Date().toLocaleTimeString();
-        div.innerHTML = `<strong>${msg.direction === "Inbound" ? "You" : "Agent"}:</strong><br>${msg.text}<br><span class="timestamp">${timestamp}</span>`;
-        container.appendChild(div);
+        appendMessage(sender, msg.text);
+      }
+      const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
+      if (attachments.length) {
+        attachments.forEach(item => {
+          const attachment = item.attachment || item;
+          if (attachment?.id) {
+            Genesys("command", "MessagingService.getFile", { fileId: attachment.id },
+              (fileInfo) => {
+                if (!fileInfo?.downloadUrl) {
+                  appendMessage(sender, `📎 Attachment — failed to load.`);
+                  return;
+                }
+                const name = fileInfo.name || fileInfo.filename || 'Unnamed file';
+                const size = fileInfo.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
+                if (fileInfo.mimeType?.startsWith("image/")) {
+                  appendMessage(sender, `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
+                } else {
+                  appendMessage(sender, `📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
+                }
+              },
+              (err) => {
+                console.error("❌ Failed to get file:", err);
+                appendMessage(sender, `📎 Attachment — failed to load.`);
+              }
+            );
+          }
+        });
       }
     });
   });
+}
+
+function resetAndConfigure(retry = false) {
+  Genesys("command", "MessagingService.clearConversation", {},
+    () => configureConversation(retry),
+    () => configureConversation(retry)
+  );
+}
+
+function configureConversation(retry) {
+  Genesys("command", "MessagingService.configureConversation", {},
+    (resp) => {
+      if (resp?.isSessionActive) {
+        isConversationActive = true;
+        conversationId = resp.conversationId;
+        document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
+      } else {
+        startNewConversation();
+      }
+    },
+    (err) => {
+      console.error("❌ configureConversation error:", err);
+      if (!retry) resetAndConfigure(true);
+    });
+}
+
+function startNewConversation() {
+  Genesys("command", "MessagingService.joinConversation", {
+    channel: { type: "web" }
+  },
+    (resp) => {
+      isConversationActive = true;
+      conversationId = resp.conversationId;
+      document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
+    },
+    (err) => {
+      console.error("❌ joinConversation error:", err);
+      alert("❌ Failed to start conversation.");
+    });
+}
+
+function sendMessage() {
+  const text = messageInput.value;
+  const file = attachmentInput.files[0];
+  if (!isConversationActive) return;
+
+  if (text) {
+    Genesys("command", "MessagingService.sendMessage", { message: text },
+      () => appendMessage("You", text),
+      (err) => console.error("❌ sendMessage error:", err));
+    messageInput.value = "";
+  }
+
+  if (file) {
+    Genesys("command", "MessagingService.requestUpload", {
+      file,
+      fileName: file.name,
+      mimeType: file.type
+    },
+      () => appendMessage("You", `📤 Sent: ${file.name}`),
+      (err) => {
+        console.error("❌ File upload failed:", err);
+        appendMessage("System", `❌ Upload failed: ${file.name}`);
+      });
+    attachmentInput.value = "";
+  }
+}
+
+function endConversation() {
+  Genesys("command", "MessagingService.clearConversation", {},
+    () => {
+      isConversationActive = false;
+      conversationId = null;
+      document.getElementById("conversationInfo").innerText = "";
+    },
+    (err) => console.error("❌ endConversation error:", err)
+  );
 }
 </script>
 </body>
