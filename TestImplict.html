@@ -190,7 +190,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready v9");
+              console.log("✅ SDK ready V60");
               startBtn.disabled = false;
             });
 
@@ -206,9 +206,9 @@
                         fileId: attachment.id
                       },
                       (fileInfo) => {
-                        const name = fileInfo.name || fileInfo.filename || 'Unnamed file';
-                        const size = fileInfo.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
-                        if (fileInfo.mimeType?.startsWith("image/")) {
+                        const name = fileInfo?.name || fileInfo?.filename || 'Unnamed file';
+                        const size = fileInfo?.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
+                        if (fileInfo?.mimeType?.startsWith("image/")) {
                           appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
                         } else {
                           appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
@@ -216,7 +216,7 @@
                       },
                       (err) => {
                         console.error("❌ Failed to get file:", err);
-                        appendMessage("Agent", `📎 ${attachment.name || 'Unknown'} — failed to load.`);
+                        appendMessage("Agent", `📎 Attachment — failed to load.`);
                       });
                     }
                   });
