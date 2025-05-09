@@ -147,12 +147,12 @@
     const statusDiv = document.getElementById('status');
     const startBtn = document.getElementById('startBtn');
 
-    function appendMessage(sender, content) {
+    function appendMessage(sender, html) {
       const container = document.getElementById("chatContainer");
       const div = document.createElement("div");
       const timestamp = new Date().toLocaleTimeString();
       div.className = "msg " + sender.toLowerCase();
-      div.innerHTML = `<strong>${sender}:</strong> ${content}<span class="timestamp">${timestamp}</span>`;
+      div.innerHTML = `<strong>${sender}:</strong><br>${html}<br><span class="timestamp">${timestamp}</span>`;
       container.appendChild(div);
       document.getElementById("chatWindow").scrollTop = container.scrollHeight;
     }
@@ -190,7 +190,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready v55");
+              console.log("✅ SDK ready v9");
               startBtn.disabled = false;
             });
 
@@ -198,50 +198,45 @@
               const messages = event.data.messages || [];
               messages.forEach((msg) => {
                 const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
-                attachments.forEach(item => {
-                  const attachment = item.attachment || item;
-                  if (attachment?.id) {
-                    Genesys("command", "MessagingService.getFile", {
-                      fileId: attachment.id
-                    },
-                    (response) => {
-                      if (response?.downloadUrl) {
-                        appendMessage("Agent", `<img src="${response.downloadUrl}" style="max-width: 200px;" alt="${attachment.name || 'image'}" />`);
-                      } else {
-                        appendMessage("Agent", `📎 Attachment: ${attachment.name || 'Unnamed file'} (${attachment?.size || '?'} bytes)`);
-                      }
-                    },
-                    (err) => {
-                      console.error("❌ Failed to get agent file:", err);
-                      appendMessage("Agent", `📎 ${attachment?.name || 'Unknown'} — failed to load.`);
-                    });
-                  }
-                });
+                if (attachments.length) {
+                  attachments.forEach(item => {
+                    const attachment = item.attachment || item;
+                    if (attachment?.id) {
+                      Genesys("command", "MessagingService.getFile", {
+                        fileId: attachment.id
+                      },
+                      (fileInfo) => {
+                        const name = fileInfo.name || fileInfo.filename || 'Unnamed file';
+                        const size = fileInfo.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
+                        if (fileInfo.mimeType?.startsWith("image/")) {
+                          appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
+                        } else {
+                          appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
+                        }
+                      },
+                      (err) => {
+                        console.error("❌ Failed to get file:", err);
+                        appendMessage("Agent", `📎 ${attachment.name || 'Unknown'} — failed to load.`);
+                      });
+                    }
+                  });
+                }
 
                 if (msg.type === "Text" && msg.text) {
-                  if (msg.direction === "Inbound") {
-                    appendMessage("You", msg.text);
-                  } else if (msg.direction === "Outbound") {
-                    if (msg.originatingEntity === "Human") {
-                      appendMessage("Agent", msg.text);
-                    } else if (msg.originatingEntity === "Bot") {
-                      appendMessage("Bot", msg.text);
-                    } else {
-                      appendMessage("System", msg.text);
-                    }
-                  }
+                  const sender = msg.direction === "Inbound" ? "You" : (msg.originatingEntity === "Human" ? "Agent" : msg.originatingEntity === "Bot" ? "Bot" : "System");
+                  appendMessage(sender, msg.text);
                 }
               });
             });
 
-            Genesys("subscribe", "MessagingService.typingReceived", function ({ data }) {
+            Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
               if (data?.typing?.type === "On") {
                 typingIndicatorDiv.style.display = "block";
                 clearTimeout(agentTypingTimeout);
                 agentTypingTimeout = setTimeout(() => {
                   typingIndicatorDiv.style.display = "none";
                 }, data.typing.durationMs || 5000);
-              } else if (data?.typing?.type === "Off") {
+              } else {
                 typingIndicatorDiv.style.display = "none";
                 clearTimeout(agentTypingTimeout);
               }
