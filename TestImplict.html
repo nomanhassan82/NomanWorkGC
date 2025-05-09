@@ -129,7 +129,7 @@
   <div id="conversationInfo"></div>
 
   <script>
-    let isConversationActive = false;
+        let isConversationActive = false;
     let conversationId = null;
     let agentTypingTimeout = null;
     let lastTypingSent = 0;
@@ -190,7 +190,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V60");
+              console.log("✅ SDK ready V70");
               startBtn.disabled = false;
             });
 
@@ -315,6 +315,11 @@
       }
 
       if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          appendMessage("System", `❌ File too large: ${file.name} (${Math.round(file.size / 1024 / 1024)} MB). Limit is 5 MB.`);
+          return;
+        }
+
         Genesys("command", "MessagingService.requestUpload", {
           file,
           fileName: file.name,
@@ -330,17 +335,6 @@
         });
         fileInput.value = "";
       }
-    }
-
-    function endConversation() {
-      Genesys("command", "MessagingService.clearConversation", {},
-        () => {
-          isConversationActive = false;
-          conversationId = null;
-          document.getElementById("conversationInfo").innerText = "";
-        },
-        (err) => console.error("❌ endConversation error:", err)
-      );
     }
   </script>
 </body>
