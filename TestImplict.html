@@ -119,7 +119,6 @@
 
   <div id="inputArea">
     <input id="messageInput" placeholder="Type a message..." />
-    <input type="file" id="attachmentInput" accept="image/*">
     <button onclick="sendMessage()">Send</button>
   </div>
 
@@ -133,7 +132,6 @@
 
     const messageInput = document.getElementById("messageInput");
     const typingIndicatorDiv = document.getElementById("typingIndicator");
-    const attachmentInput = document.getElementById("attachmentInput");
 
     const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
     const REGION = 'cac1.pure.cloud';
@@ -155,23 +153,17 @@
       document.getElementById("chatWindow").scrollTop = container.scrollHeight;
     }
 
-    function appendImage(sender, url) {
-      const container = document.getElementById("chatContainer");
-      const div = document.createElement("div");
-      const timestamp = new Date().toLocaleTimeString();
-      div.className = "msg " + sender.toLowerCase();
-      div.innerHTML = `<strong>${sender}:</strong><br><img src="${url}" style="max-width: 200px; border-radius: 6px;"><span class="timestamp">${timestamp}</span>`;
-      container.appendChild(div);
-      document.getElementById("chatWindow").scrollTop = container.scrollHeight;
-    }
-
     window.addEventListener('load', function () {
       messageInput.addEventListener("input", () => {
         if (!isConversationActive) return;
         const now = Date.now();
         if (now - lastTypingSent < 3000) return;
         lastTypingSent = now;
-        Genesys("command", "MessagingService.sendTyping", {});
+
+        Genesys("command", "MessagingService.sendTyping", {},
+          () => console.log("✅ Typing indicator sent to agent"),
+          (err) => console.error("❌ Failed to send typing indicator:", err)
+        );
       });
 
       const hash = window.location.hash.substr(1);
@@ -194,32 +186,52 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready v11");
+              console.log("✅ SDK ready V11");
               startBtn.disabled = false;
             });
 
             Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
-              (event.data.messages || []).forEach((msg) => {
-                if (msg.type === "Text") {
-                  const sender = msg.direction === "Inbound" ? "You" : (msg.originatingEntity === "Human" ? "Agent" : "Bot");
-                  appendMessage(sender, msg.text);
-                } else if (msg.type === "Attachment" && msg.direction === "Outbound") {
-                  Genesys("command", "MessagingService.getFile", {
-                    attachmentId: msg.attachment.id
-                  }, (url) => {
-                    appendImage("Agent", url);
+              const messages = event.data.messages || [];
+              messages.forEach((msg) => {
+                if (msg.content && Array.isArray(msg.content)) {
+                  msg.content.forEach(item => {
+                    if (item.contentType === "Attachment" && item.attachment?.id) {
+                      Genesys("command", "MessagingService.getFile", {
+                        fileId: item.attachment.id
+                      },
+                      (response) => {
+                        appendMessage("Agent", `<img src="${response.downloadUrl}" style="max-width: 200px;" />`);
+                      },
+                      (err) => console.error("❌ Failed to get agent file:", err));
+                    }
                   });
+                } else if (msg.type === "Text") {
+                  if (msg.direction === "Inbound") {
+                    appendMessage("You", msg.text);
+                  } else if (msg.direction === "Outbound") {
+                    if (msg.originatingEntity === "Human") {
+                      appendMessage("Agent", msg.text);
+                    } else if (msg.originatingEntity === "Bot") {
+                      appendMessage("Bot", msg.text);
+                    } else {
+                      appendMessage("System", msg.text);
+                    }
+                  }
                 }
               });
             });
 
-            Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
+            Genesys("subscribe", "MessagingService.typingReceived", function ({ data }) {
               if (data?.typing?.type === "On") {
+                console.log("🟢 Agent is typing...");
                 typingIndicatorDiv.style.display = "block";
                 clearTimeout(agentTypingTimeout);
-                agentTypingTimeout = setTimeout(() => typingIndicatorDiv.style.display = "none", data.typing.durationMs || 5000);
-              } else {
+                agentTypingTimeout = setTimeout(() => {
+                  typingIndicatorDiv.style.display = "none";
+                }, data.typing.durationMs || 5000);
+              } else if (data?.typing?.type === "Off") {
                 typingIndicatorDiv.style.display = "none";
+                clearTimeout(agentTypingTimeout);
               }
             });
           };
@@ -278,32 +290,17 @@
     }
 
     function sendMessage() {
-      const text = messageInput.value;
-      const file = attachmentInput.files[0];
+      const input = document.getElementById("messageInput");
+      const text = input.value;
+      if (!text || !isConversationActive) return;
 
-      if (!isConversationActive) return;
-
-      if (file) {
-        Genesys("command", "MessagingService.requestUpload", {
-          file,
-          fileType: file.type,
-          fileName: file.name
-        },
-        () => {
-          appendImage("You", URL.createObjectURL(file));
-          attachmentInput.value = "";
-        },
-        (err) => console.error("❌ File upload failed:", err));
-      }
-
-      if (text) {
-        Genesys("command", "MessagingService.sendMessage", {
-          message: text
-        },
-          () => appendMessage("You", text),
-          (err) => console.error("❌ sendMessage error:", err));
-        messageInput.value = "";
-      }
+      Genesys("command", "MessagingService.sendMessage", {
+        message: text
+      },
+        () => appendMessage("You", text),
+        (err) => console.error("❌ sendMessage error:", err)
+      );
+      input.value = "";
     }
 
     function endConversation() {
