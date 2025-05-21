@@ -288,6 +288,7 @@
         (resp) => {
           isConversationActive = true;
           conversationId = resp.conversationId;
+          allowUpload = true;  // <-- Enable uploads only after join
           document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
         },
         (err) => {
@@ -295,6 +296,7 @@
           alert("❌ Failed to start conversation.");
         });
     }
+let allowUpload = false; // Set this to true after conversation is fully joined
 
 function sendMessage() {
   const input = document.getElementById("messageInput");
@@ -303,42 +305,50 @@ function sendMessage() {
   const file = fileInput.files[0];
 
   if (!isConversationActive) {
-    console.warn("❌ Cannot send message or upload — conversation not active.");
+    console.warn("❌ Cannot send message — conversation is not active.");
     return;
   }
 
-  // Send text message if present
+  // ✅ Send text message
   if (text) {
     Genesys("command", "MessagingService.sendMessage", {
       message: text
     },
     () => {
-      console.log("✅ Message sent.");
+      console.log("✅ Text message sent.");
     },
     (err) => {
       console.error("❌ sendMessage error:", err);
     });
+
     input.value = "";
   }
 
-  // Handle file upload
+  // ✅ Handle file upload
   if (file) {
-    // Basic validation
-    if (!file.name || !file.type) {
+    if (!allowUpload) {
+      console.warn("❌ Upload not allowed: SDK still initializing.");
+      appendMessage("System", `❌ Upload not allowed yet.`);
+      return;
+    }
+
+    // Basic file validation
+    if (!file.name || (!file.type && !file.name.match(/\.(jpg|jpeg|png|gif)$/i))) {
       console.error("❌ Invalid file selected.");
       appendMessage("System", "❌ Invalid file selected.");
       return;
     }
 
-    // Upload
+    const mimeType = file.type || 'image/jpeg'; // Fallback MIME type
+
     Genesys("command", "MessagingService.requestUpload", {
       file,
       fileName: file.name,
-      mimeType: file.type
+      mimeType: mimeType
     },
     (res) => {
       console.log("✅ File upload response:", res);
-      // Don't manually append message here — SDK will send it back through `messagesReceived`
+      // Let SDK echo the uploaded message via `messagesReceived`
     },
     (err) => {
       console.error("❌ File upload failed:", err);
