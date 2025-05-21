@@ -190,7 +190,8 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V60");
+              console.log("✅ SDK ready V61");
+              allowUpload = true; // <-- Enable upload here
               startBtn.disabled = false;
             });
 
@@ -270,6 +271,7 @@
           if (resp?.isSessionActive) {
             isConversationActive = true;
             conversationId = resp.conversationId;
+            allowUpload = true; // <-- Safe to set here too
             document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
           } else {
             startNewConversation();
