@@ -265,7 +265,7 @@
     }
 
     function configureConversation(retry) {
-      Genesys("command", "MessagingService.configureConversation", {},
+      Genesys("command", "MessagingService.configureConversation", {debug: true},
         (resp) => {
           if (resp?.isSessionActive) {
             isConversationActive = true;
