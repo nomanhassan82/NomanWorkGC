@@ -296,25 +296,41 @@
         });
     }
 
-    function sendMessage() {
+function sendMessage() {
   const input = document.getElementById("messageInput");
   const fileInput = document.getElementById("attachmentInput");
-  const text = input.value;
+  const text = input.value.trim();
   const file = fileInput.files[0];
 
-  if (!isConversationActive) return;
+  if (!isConversationActive) {
+    console.warn("❌ Cannot send message or upload — conversation not active.");
+    return;
+  }
 
+  // Send text message if present
   if (text) {
     Genesys("command", "MessagingService.sendMessage", {
       message: text
     },
-      () => console.log("✅ Message sent"),
-      (err) => console.error("❌ sendMessage error:", err)
-    );
+    () => {
+      console.log("✅ Message sent.");
+    },
+    (err) => {
+      console.error("❌ sendMessage error:", err);
+    });
     input.value = "";
   }
 
+  // Handle file upload
   if (file) {
+    // Basic validation
+    if (!file.name || !file.type) {
+      console.error("❌ Invalid file selected.");
+      appendMessage("System", "❌ Invalid file selected.");
+      return;
+    }
+
+    // Upload
     Genesys("command", "MessagingService.requestUpload", {
       file,
       fileName: file.name,
@@ -322,14 +338,17 @@
     },
     (res) => {
       console.log("✅ File upload response:", res);
+      // Don't manually append message here — SDK will send it back through `messagesReceived`
     },
     (err) => {
       console.error("❌ File upload failed:", err);
       appendMessage("System", `❌ Upload failed: ${file.name}`);
     });
+
     fileInput.value = "";
   }
 }
+
 
 
     function endConversation() {
