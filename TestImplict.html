@@ -297,40 +297,40 @@
     }
 
     function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const fileInput = document.getElementById("attachmentInput");
-      const text = input.value;
-      const file = fileInput.files[0];
+  const input = document.getElementById("messageInput");
+  const fileInput = document.getElementById("attachmentInput");
+  const text = input.value;
+  const file = fileInput.files[0];
 
-      if (!isConversationActive) return;
+  if (!isConversationActive) return;
 
-      if (text) {
-        Genesys("command", "MessagingService.sendMessage", {
-          message: text
-        },
-          () => appendMessage("You", text),
-          (err) => console.error("❌ sendMessage error:", err)
-        );
-        input.value = "";
-      }
+  if (text) {
+    Genesys("command", "MessagingService.sendMessage", {
+      message: text
+    },
+      () => console.log("✅ Message sent"),
+      (err) => console.error("❌ sendMessage error:", err)
+    );
+    input.value = "";
+  }
 
-      if (file) {
-        Genesys("command", "MessagingService.requestUpload", {
-          file,
-          fileName: file.name,
-          mimeType: file.type
-        },
-        (res) => {
-          console.log("✅ File upload response:", res);
-          appendMessage("You", `📤 Sent: ${file.name}`);
-        },
-        (err) => {
-          console.error("❌ File upload failed:", err);
-          appendMessage("System", `❌ Upload failed: ${file.name}`);
-        });
-        fileInput.value = "";
-      }
-    }
+  if (file) {
+    Genesys("command", "MessagingService.requestUpload", {
+      file,
+      fileName: file.name,
+      mimeType: file.type
+    },
+    (res) => {
+      console.log("✅ File upload response:", res);
+    },
+    (err) => {
+      console.error("❌ File upload failed:", err);
+      appendMessage("System", `❌ Upload failed: ${file.name}`);
+    });
+    fileInput.value = "";
+  }
+}
+
 
     function endConversation() {
       Genesys("command", "MessagingService.clearConversation", {},
