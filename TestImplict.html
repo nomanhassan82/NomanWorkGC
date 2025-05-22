@@ -104,15 +104,6 @@
     };
 
     function resetAndConfigure() {
-      if (!isConversationActive) {
-        console.warn("⚠️ No active conversation to clear.");
-        configureConversation();
-        return;
-      }
-      Genesys("command", "MessagingService.clearConversation", {}, configureConversation);
-    }
-
-    function configureConversation() {
       Genesys("command", "MessagingService.configureConversation", {}, (resp) => {
         if (resp?.isSessionActive) {
           isConversationActive = true;
@@ -122,6 +113,8 @@
         } else {
           startNewConversation();
         }
+      }, (err) => {
+        console.error("❌ configureConversation error:", err);
       });
     }
 
@@ -133,6 +126,8 @@
         conversationId = resp.conversationId;
         allowUpload = true;
         document.getElementById("conversationInfo").textContent = `Conversation ID: ${conversationId}`;
+      }, (err) => {
+        console.warn("⚠️ Attempted to join an already active conversation. Skipping.");
       });
     }
 
