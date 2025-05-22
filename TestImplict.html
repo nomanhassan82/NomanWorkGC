@@ -181,9 +181,7 @@
       }
 
       if (text) {
-        Genesys("command", "MessagingService.sendMessage", {
-          message: text
-        });
+        Genesys("command", "MessagingService.sendMessage", { message: text });
         messageInput.value = "";
       }
 
@@ -219,10 +217,8 @@
           uploadedAttachments.push(params.attachmentId);
           showImageThumbnail(params.downloadUrl);
           Genesys("command", "MessagingService.sendMessage", {
-            message: {
-              text: "Here's the image you requested!",
-              attachmentIds: uploadedAttachments
-            }
+            message: "Here's the image you requested!",
+            attachmentIds: uploadedAttachments
           });
           uploadedAttachments = [];
         });
