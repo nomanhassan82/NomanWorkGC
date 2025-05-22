@@ -124,6 +124,46 @@
     <input id="messageInput" placeholder="Type a message..." />
     <input type="file" id="attachmentInput" accept="image/*" />
     <button onclick="sendMessage()">Send</button>
+<button onclick="sendSampleImage()">Send Sample Image</button>
+<script>
+function sendSampleImage() {
+  if (!isConversationActive) {
+    console.warn("❌ Cannot upload — conversation is not active.");
+    appendMessage("System", "❌ Start the conversation before sending the image.");
+    return;
+  }
+
+  const url = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+
+  // Temporary one-time handler
+  const onFileUploaded = function ({ data }) {
+    Genesys("command", "MessagingService.sendMessage", {
+      attachmentIds: [data.attachmentId]
+    });
+    Genesys("unsubscribe", "MessagingService.fileUploaded", onFileUploaded);
+  };
+
+  Genesys("subscribe", "MessagingService.fileUploaded", onFileUploaded);
+
+  fetch(url).then(async (response) => {
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    const blob = await response.blob();
+    const file = new File([blob], "sample.jpg", { type: contentType });
+
+    Genesys("command", "MessagingService.requestUpload", {
+      file,
+      fileName: file.name,
+      mimeType: file.type
+    },
+    () => console.log("📥 Upload started"),
+    (err) => {
+      console.error("❌ Upload failed:", err);
+      appendMessage("System", `❌ Upload failed: ${file.name}`);
+    });
+  });
+}
+</script>
+
   </div>
 
   <div id="conversationInfo"></div>
@@ -152,7 +192,7 @@
       const div = document.createElement("div");
       const timestamp = new Date().toLocaleTimeString();
       div.className = "msg " + sender.toLowerCase();
-      div.innerHTML = <strong>${sender}:</strong><br>${html}<br><span class="timestamp">${timestamp}</span>;
+      div.innerHTML = `<strong>${sender}:</strong><br>${html}<br><span class="timestamp">${timestamp}</span>`;
       container.appendChild(div);
       document.getElementById("chatWindow").scrollTop = container.scrollHeight;
     }
@@ -190,7 +230,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V61");
+              console.log("✅ SDK ready V63");
               allowUpload = true; // <-- Enable upload here
               startBtn.disabled = false;
             });
@@ -208,16 +248,16 @@
                       },
                       (fileInfo) => {
                         const name = fileInfo?.name || fileInfo?.filename || 'Unnamed file';
-                        const size = fileInfo?.size ?  (${Math.round(fileInfo.size / 1024)} KB) : '';
+                        const size = fileInfo?.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
                         if (fileInfo?.mimeType?.startsWith("image/")) {
-                          appendMessage("Agent", <img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">);
+                          appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
                         } else {
-                          appendMessage("Agent", 📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size});
+                          appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
                         }
                       },
                       (err) => {
                         console.error("❌ Failed to get file:", err);
-                        appendMessage("Agent", 📎 Attachment — failed to load.);
+                        appendMessage("Agent", `📎 Attachment — failed to load.`);
                       });
                     }
                   });
@@ -270,7 +310,7 @@
     });
 
     loginButton.addEventListener('click', function () {
-      const authUrl = https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI};
+      const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
       window.location.href = authUrl;
     });
 
@@ -288,7 +328,7 @@
             isConversationActive = true;
             conversationId = resp.conversationId;
             allowUpload = true; // <-- Safe to set here too
-            document.getElementById("conversationInfo").innerText = 🆔 Conversation ID: ${conversationId};
+            document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
           } else {
             startNewConversation();
           }
@@ -307,7 +347,7 @@
           isConversationActive = true;
           conversationId = resp.conversationId;
           allowUpload = true;  // <-- Enable uploads only after join
-          document.getElementById("conversationInfo").innerText = 🆔 Conversation ID: ${conversationId};
+          document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
         },
         (err) => {
           console.error("❌ joinConversation error:", err);
@@ -346,7 +386,7 @@ function sendMessage() {
   if (file) {
     if (!allowUpload) {
       console.warn("❌ Upload not allowed: SDK still initializing.");
-      appendMessage("System", ❌ Upload not allowed yet.);
+      appendMessage("System", `❌ Upload not allowed yet.`);
       return;
     }
 
@@ -366,11 +406,11 @@ function sendMessage() {
     },
     (res) => {
       console.log("✅ File upload response:", res);
-      // Let SDK echo the uploaded message via messagesReceived
+      // Let SDK echo the uploaded message via `messagesReceived`
     },
     (err) => {
       console.error("❌ File upload failed:", err);
-      appendMessage("System", ❌ Upload failed: ${file.name});
+      appendMessage("System", `❌ Upload failed: ${file.name}`);
     });
 
     fileInput.value = "";
