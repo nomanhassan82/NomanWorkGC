@@ -10,8 +10,8 @@
   <h2>Genesys Headless Chat (Implicit Grant)</h2>
   <button id="loginButton">Login to Genesys</button>
   <div id="status" class="disconnected">Not authenticated</div>
-  <button id="startBtn" onclick="resetAndConfigure()" disabled>Start or Resume Conversation</button>
-  <button onclick="endConversation()">End Conversation</button>
+  <button id="startBtn" disabled>Start or Resume Conversation</button>
+  <button id="endBtn">End Conversation</button>
   <div id="chatWindow">
     <div id="chatContainer"></div>
     <div id="typingIndicator" class="msg agent">Agent is typing...</div>
@@ -19,7 +19,7 @@
   <div id="inputArea">
     <input id="messageInput" placeholder="Type a message..." />
     <input type="file" id="attachmentInput" accept="image/*" />
-    <button onclick="sendMessage()">Send</button>
+    <button id="sendBtn">Send</button>
   </div>
   <div id="conversationInfo"></div>
 
@@ -36,6 +36,18 @@
     document.getElementById('loginButton').onclick = function () {
       const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
       window.location.href = authUrl;
+    };
+
+    document.getElementById('startBtn').onclick = function () {
+      resetAndConfigure();
+    };
+
+    document.getElementById('endBtn').onclick = function () {
+      endConversation();
+    };
+
+    document.getElementById('sendBtn').onclick = function () {
+      sendMessage();
     };
 
     window.onload = function () {
