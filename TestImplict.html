@@ -124,6 +124,31 @@
     <input id="messageInput" placeholder="Type a message..." />
     <input type="file" id="attachmentInput" accept="image/*" />
     <button onclick="sendMessage()">Send</button>
+    <button onclick="sendSampleImage()">Send Sample Image</button>
+    <script>
+function sendSampleImage() {
+  const url = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+
+  Genesys("subscribe", "MessagingService.fileUploaded", function once({ data }) {
+    Genesys("command", "MessagingService.sendMessage", {
+      attachmentIds: [data.attachmentId]
+    });
+    Genesys("unsubscribe", "MessagingService.fileUploaded", once); // prevent multiple sends
+  });
+
+  fetch(url).then(async (response) => {
+    const contentType = response.headers.get("content-type");
+    const blob = await response.blob();
+    const file = new File([blob], "sample.jpg", { type: contentType });
+
+    Genesys("command", "MessagingService.requestUpload", {
+      file,
+      fileName: file.name,
+      mimeType: file.type
+    });
+  });
+}
+</script>
   </div>
 
   <div id="conversationInfo"></div>
