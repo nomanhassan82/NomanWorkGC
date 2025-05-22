@@ -124,99 +124,31 @@
     <input id="messageInput" placeholder="Type a message..." />
     <input type="file" id="attachmentInput" accept="image/*" />
     <button onclick="sendMessage()">Send</button>
-<button onclick="sendSampleImage()">Send Sample Image with Text</button>
- </div>
-<script>
-let uploadedAttachments = [];
+    <button onclick="sendSampleImage()">Send Sample Image with Text</button>
+  </div>
 
-// Only subscribe once
-let isSubscribed = false;
+  <div id="conversationInfo"></div>
 
-function sendSampleImage() {
-  if (!isConversationActive) {
-    console.warn("❌ Cannot upload — conversation is not active.");
-    appendMessage("System", "❌ Start the conversation before sending the image.");
-    return;
-  }
-
-  // Subscribe once to fileUploaded event
-  if (!isSubscribed) {
-    Genesys("subscribe", "MessagingService.fileUploaded", function (params) {
-      console.log("✅ File uploaded:", params);
-
-      // Store attachmentId and show thumbnail
-      uploadedAttachments.push(params.attachmentId);
-      showImageThumbnail(params.downloadUrl);
-
-      // Send text + image as one message
-      Genesys("command", "MessagingService.sendMessage", {
-        message: {
-          text: "Here's the image you requested!",
-          attachmentIds: uploadedAttachments
-        }
-      });
-
-      // Clear for next message
-      uploadedAttachments = [];
-    });
-    isSubscribed = true;
-  }
-
-  const imageUrls = [
-    "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
-    // Add more URLs here if needed
-  ];
-
-  imageUrls.forEach((url) => {
-    fetch(url)
-      .then(async (response) => {
-        const contentType = response.headers.get("content-type");
-        const blob = await response.blob();
-        const file = new File([blob], "image.jpg", { type: contentType });
-
-        const dt = new DataTransfer();
-        dt.items.add(file);
-
-        Genesys("command", "MessagingService.requestUpload", {
-          file: dt.files
-        });
-      })
-      .catch((error) => {
-        console.error("❌ Failed to fetch/upload image:", error);
-        appendMessage("System", "❌ Failed to upload the image.");
-      });
-  });
-}
-
-// Show image thumbnail in chat window
-function showImageThumbnail(url) {
-  const chatWindow = document.getElementById("chatWindow");
-  const img = document.createElement("img");
-  img.src = url;
-  img.alt = "Uploaded image";
-  img.style.maxWidth = "200px";
-  img.style.marginTop = "5px";
-  chatWindow.appendChild(img);
-}
-</script>
-
+  <script>
     let isConversationActive = false;
     let conversationId = null;
+    let allowUpload = false;
+    let uploadedAttachments = [];
     let agentTypingTimeout = null;
     let lastTypingSent = 0;
-
-    const messageInput = document.getElementById("messageInput");
-    const attachmentInput = document.getElementById("attachmentInput");
-    const typingIndicatorDiv = document.getElementById("typingIndicator");
+    let isSubscribed = false;
 
     const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
     const REGION = 'cac1.pure.cloud';
     const DEPLOYMENT_ID = '4411676a-d200-478c-8adc-1312bb86bb84';
     const REDIRECT_URI = encodeURIComponent(window.location.origin + window.location.pathname);
 
-    const loginButton = document.getElementById('loginButton');
-    const statusDiv = document.getElementById('status');
-    const startBtn = document.getElementById('startBtn');
+    const messageInput = document.getElementById("messageInput");
+    const attachmentInput = document.getElementById("attachmentInput");
+    const typingIndicatorDiv = document.getElementById("typingIndicator");
+    const loginButton = document.getElementById("loginButton");
+    const statusDiv = document.getElementById("status");
+    const startBtn = document.getElementById("startBtn");
 
     function appendMessage(sender, html) {
       const container = document.getElementById("chatContainer");
@@ -228,122 +160,85 @@ function showImageThumbnail(url) {
       document.getElementById("chatWindow").scrollTop = container.scrollHeight;
     }
 
-    window.addEventListener('load', function () {
-      messageInput.addEventListener("input", () => {
-        if (!isConversationActive) return;
-        const now = Date.now();
-        if (now - lastTypingSent < 3000) return;
-        lastTypingSent = now;
+    function showImageThumbnail(url) {
+      const container = document.getElementById("chatContainer");
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "Uploaded image";
+      img.style.maxWidth = "200px";
+      img.style.margin = "5px 0";
+      container.appendChild(img);
+      document.getElementById("chatWindow").scrollTop = container.scrollHeight;
+    }
 
-        Genesys("command", "MessagingService.sendTyping", {},
-          () => console.log("✅ Typing indicator sent to agent"),
-          (err) => console.error("❌ Failed to send typing indicator:", err)
-        );
-      });
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      const file = attachmentInput.files[0];
 
-      const hash = window.location.hash.substr(1);
-      const params = new URLSearchParams(hash);
-
-      if (params.has('access_token')) {
-        const token = params.get('access_token');
-        statusDiv.textContent = 'Authenticated with Genesys';
-        statusDiv.className = 'connected';
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        (function (g, e, n, es) {
-          g["_genesysJs"] = e;
-          g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
-          g[e].t = +new Date();
-          g[e].c = es;
-          const s = document.createElement("script");
-          s.async = true;
-          s.src = n;
-          s.charset = "utf-8";
-          s.onload = function () {
-            Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V63");
-              allowUpload = true; // <-- Enable upload here
-              startBtn.disabled = false;
-            });
-
-            Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
-              const messages = event.data.messages || [];
-              messages.forEach((msg) => {
-                const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
-                if (attachments.length) {
-                  attachments.forEach(item => {
-                    const attachment = item.attachment || item;
-                    if (attachment?.id) {
-                      Genesys("command", "MessagingService.getFile", {
-                        fileId: attachment.id
-                      },
-                      (fileInfo) => {
-                        const name = fileInfo?.name || fileInfo?.filename || 'Unnamed file';
-                        const size = fileInfo?.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
-                        if (fileInfo?.mimeType?.startsWith("image/")) {
-                          appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
-                        } else {
-                          appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
-                        }
-                      },
-                      (err) => {
-                        console.error("❌ Failed to get file:", err);
-                        appendMessage("Agent", `📎 Attachment — failed to load.`);
-                      });
-                    }
-                  });
-                }
-
-                if (msg.type === "Text" && msg.text) {
-                  const sender = msg.direction === "Inbound" ? "You" : (msg.originatingEntity === "Human" ? "Agent" : msg.originatingEntity === "Bot" ? "Bot" : "System");
-                  appendMessage(sender, msg.text);
-                }
-              });
-            });
-
-            Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
-              if (data?.typing?.type === "On") {
-                typingIndicatorDiv.style.display = "block";
-                clearTimeout(agentTypingTimeout);
-                agentTypingTimeout = setTimeout(() => {
-                  typingIndicatorDiv.style.display = "none";
-                }, data.typing.durationMs || 5000);
-              } else {
-                typingIndicatorDiv.style.display = "none";
-                clearTimeout(agentTypingTimeout);
-              }
-            });
-            Genesys("subscribe", "MessagingService.fileUploaded", function({ data }) {
-            console.log("File uploaded:", data);
-
-            // Send the uploaded file as a message
-            Genesys("command", "MessagingService.sendMessage", {
-        attachmentIds: [data.attachmentId]
-      },
-    function() {
-    console.log("File sent as a message.");
-  },
-  function(error) {
-    console.error("Error sending file as a message:", error);
-  });
-});
-
-            
-          };
-          document.head.appendChild(s);
-        })(window, 'Genesys', 'https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js', {
-          environment: 'prod-cac1',
-          deploymentId: DEPLOYMENT_ID,
-          messenger: { headlessMode: true, jwt: token },
-          debug: true
-        });
+      if (!isConversationActive) {
+        console.warn("❌ Cannot send message — conversation is not active.");
+        return;
       }
-    });
 
-    loginButton.addEventListener('click', function () {
-      const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
-      window.location.href = authUrl;
-    });
+      if (text) {
+        Genesys("command", "MessagingService.sendMessage", {
+          message: text
+        });
+        messageInput.value = "";
+      }
+
+      if (file) {
+        if (!allowUpload) {
+          appendMessage("System", "❌ Upload not allowed yet.");
+          return;
+        }
+
+        if (!file.type.startsWith("image/")) {
+          appendMessage("System", "❌ Only image files are supported.");
+          return;
+        }
+
+        Genesys("command", "MessagingService.requestUpload", {
+          file: file,
+          fileName: file.name,
+          mimeType: file.type
+        });
+
+        attachmentInput.value = "";
+      }
+    }
+
+    function sendSampleImage() {
+      if (!isConversationActive) {
+        appendMessage("System", "❌ Start the conversation before sending the image.");
+        return;
+      }
+
+      if (!isSubscribed) {
+        Genesys("subscribe", "MessagingService.fileUploaded", function (params) {
+          uploadedAttachments.push(params.attachmentId);
+          showImageThumbnail(params.downloadUrl);
+          Genesys("command", "MessagingService.sendMessage", {
+            message: {
+              text: "Here's the image you requested!",
+              attachmentIds: uploadedAttachments
+            }
+          });
+          uploadedAttachments = [];
+        });
+        isSubscribed = true;
+      }
+
+      const imageUrl = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+      fetch(imageUrl)
+        .then(response => response.blob())
+        .then(blob => {
+          const file = new File([blob], "sample.jpg", { type: "image/jpeg" });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          Genesys("command", "MessagingService.requestUpload", { file: dt.files });
+        });
+    }
 
     function resetAndConfigure(retry = false) {
       Genesys("command", "MessagingService.clearConversation", {},
@@ -353,12 +248,12 @@ function showImageThumbnail(url) {
     }
 
     function configureConversation(retry) {
-      Genesys("command", "MessagingService.configureConversation", {debug: true},
+      Genesys("command", "MessagingService.configureConversation", { debug: true },
         (resp) => {
           if (resp?.isSessionActive) {
             isConversationActive = true;
             conversationId = resp.conversationId;
-            allowUpload = true; // <-- Safe to set here too
+            allowUpload = true;
             document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
           } else {
             startNewConversation();
@@ -377,7 +272,7 @@ function showImageThumbnail(url) {
         (resp) => {
           isConversationActive = true;
           conversationId = resp.conversationId;
-          allowUpload = true;  // <-- Enable uploads only after join
+          allowUpload = true;
           document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
         },
         (err) => {
@@ -385,70 +280,6 @@ function showImageThumbnail(url) {
           alert("❌ Failed to start conversation.");
         });
     }
-let allowUpload = false; // Set this to true after conversation is fully joined
-
-function sendMessage() {
-  const input = document.getElementById("messageInput");
-  const fileInput = document.getElementById("attachmentInput");
-  const text = input.value.trim();
-  const file = fileInput.files[0];
-
-  if (!isConversationActive) {
-    console.warn("❌ Cannot send message — conversation is not active.");
-    return;
-  }
-
-  // ✅ Send text message
-  if (text) {
-    Genesys("command", "MessagingService.sendMessage", {
-      message: text
-    },
-    () => {
-      console.log("✅ Text message sent.");
-    },
-    (err) => {
-      console.error("❌ sendMessage error:", err);
-    });
-
-    input.value = "";
-  }
-
-  // ✅ Handle file upload
-  if (file) {
-    if (!allowUpload) {
-      console.warn("❌ Upload not allowed: SDK still initializing.");
-      appendMessage("System", `❌ Upload not allowed yet.`);
-      return;
-    }
-
-    // Basic file validation
-    if (!file.name || (!file.type && !file.name.match(/\.(jpg|jpeg|png|gif)$/i))) {
-      console.error("❌ Invalid file selected.");
-      appendMessage("System", "❌ Invalid file selected.");
-      return;
-    }
-
-    const mimeType = file.type || 'image/jpeg'; // Fallback MIME type
-
-    Genesys("command", "MessagingService.requestUpload", {
-      file,
-      fileName: file.name,
-      mimeType: mimeType
-    },
-    (res) => {
-      console.log("✅ File upload response:", res);
-      // Let SDK echo the uploaded message via `messagesReceived`
-    },
-    (err) => {
-      console.error("❌ File upload failed:", err);
-      appendMessage("System", `❌ Upload failed: ${file.name}`);
-    });
-
-    fileInput.value = "";
-  }
-}
-
-
 
     function endConversation() {
       Genesys("command", "MessagingService.clearConversation", {},
@@ -456,10 +287,97 @@ function sendMessage() {
           isConversationActive = false;
           conversationId = null;
           document.getElementById("conversationInfo").innerText = "";
-        },
-        (err) => console.error("❌ endConversation error:", err)
-      );
+        });
     }
+
+    window.addEventListener("load", function () {
+      messageInput.addEventListener("input", () => {
+        if (!isConversationActive) return;
+        const now = Date.now();
+        if (now - lastTypingSent < 3000) return;
+        lastTypingSent = now;
+        Genesys("command", "MessagingService.sendTyping");
+      });
+
+      const hash = window.location.hash.substr(1);
+      const params = new URLSearchParams(hash);
+      if (params.has("access_token")) {
+        const token = params.get("access_token");
+        statusDiv.textContent = "Authenticated with Genesys";
+        statusDiv.className = "connected";
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        (function (g, e, n, es) {
+          g["_genesysJs"] = e;
+          g[e] = g[e] || function () { (g[e].q = g[e].q || []).push(arguments); };
+          g[e].t = +new Date();
+          g[e].c = es;
+          const s = document.createElement("script");
+          s.async = true;
+          s.src = n;
+          s.charset = "utf-8";
+          s.onload = function () {
+            Genesys("subscribe", "MessagingService.ready", () => {
+              console.log("✅ SDK Ready");
+              startBtn.disabled = false;
+            });
+
+            Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
+              const messages = event.data.messages || [];
+              messages.forEach((msg) => {
+                const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
+                attachments.forEach(item => {
+                  const attachment = item.attachment || item;
+                  if (attachment?.id) {
+                    Genesys("command", "MessagingService.getFile", {
+                      fileId: attachment.id
+                    }, (fileInfo) => {
+                      const name = fileInfo.name || "Attachment";
+                      if (fileInfo.mimeType?.startsWith("image/")) {
+                        appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
+                      } else {
+                        appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${name}</a>`);
+                      }
+                    });
+                  }
+                });
+
+                if (msg.type === "Text" && msg.text) {
+                  const sender = msg.direction === "Inbound" ? "You" :
+                    msg.originatingEntity === "Human" ? "Agent" :
+                    msg.originatingEntity === "Bot" ? "Bot" : "System";
+                  appendMessage(sender, msg.text);
+                }
+              });
+            });
+
+            Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
+              if (data?.typing?.type === "On") {
+                typingIndicatorDiv.style.display = "block";
+                clearTimeout(agentTypingTimeout);
+                agentTypingTimeout = setTimeout(() => {
+                  typingIndicatorDiv.style.display = "none";
+                }, data.typing.durationMs || 5000);
+              } else {
+                typingIndicatorDiv.style.display = "none";
+                clearTimeout(agentTypingTimeout);
+              }
+            });
+          };
+          document.head.appendChild(s);
+        })(window, "Genesys", "https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js", {
+          environment: "prod-cac1",
+          deploymentId: DEPLOYMENT_ID,
+          messenger: { headlessMode: true, jwt: token },
+          debug: true
+        });
+      }
+    });
+
+    loginButton.addEventListener("click", function () {
+      const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
+      window.location.href = authUrl;
+    });
   </script>
 </body>
 </html>
