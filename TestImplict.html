@@ -92,6 +92,11 @@
     };
 
     function resetAndConfigure() {
+      if (!isConversationActive) {
+        console.warn("⚠️ No active conversation to clear.");
+        configureConversation();
+        return;
+      }
       Genesys("command", "MessagingService.clearConversation", {}, configureConversation);
     }
 
@@ -149,6 +154,10 @@
     }
 
     function endConversation() {
+      if (!isConversationActive) {
+        console.warn("⚠️ No active conversation to end.");
+        return;
+      }
       Genesys("command", "MessagingService.clearConversation", {}, () => {
         isConversationActive = false;
         conversationId = null;
