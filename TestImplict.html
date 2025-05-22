@@ -50,13 +50,6 @@
       align-self: flex-start;
       border-top-left-radius: 0;
     }
-    .msg.bot {
-      background-color: #fff3cd;
-      color: #856404;
-      align-self: flex-start;
-      border-top-left-radius: 0;
-      font-style: italic;
-    }
     .msg.system {
       background-color: #f5f5f5;
       color: #333;
@@ -124,48 +117,9 @@
     <input id="messageInput" placeholder="Type a message..." />
     <input type="file" id="attachmentInput" accept="image/*" />
     <button onclick="sendMessage()">Send</button>
-<button onclick="sendSampleImage()">Send Sample Image</button>
-<script>
-function sendSampleImage() {
-  if (!isConversationActive) {
-    console.warn("❌ Cannot upload — conversation is not active.");
-    appendMessage("System", "❌ Start the conversation before sending the image.");
-    return;
-  }
-
-  const url = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
-
-  // Temporary one-time handler
-  const onFileUploaded = function ({ data }) {
-    Genesys("command", "MessagingService.sendMessage", {
-      attachmentIds: [data.attachmentId]
-    });
-    Genesys("unsubscribe", "MessagingService.fileUploaded", onFileUploaded);
-  };
-
-  Genesys("subscribe", "MessagingService.fileUploaded", onFileUploaded);
-
-  fetch(url).then(async (response) => {
-    const contentType = response.headers.get("content-type") || "image/jpeg";
-    const blob = await response.blob();
-    const file = new File([blob], "sample.jpg", { type: contentType });
-
-    Genesys("command", "MessagingService.requestUpload", {
-      file,
-      fileName: file.name,
-      mimeType: file.type
-    },
-    () => console.log("📥 Upload started"),
-    (err) => {
-      console.error("❌ Upload failed:", err);
-      appendMessage("System", `❌ Upload failed: ${file.name}`);
-    });
-  });
-}
-</script>
-
   </div>
 
+  <button id="sendImageBtn" onclick="sendSampleImage()" disabled>Send Sample Image</button>
   <div id="conversationInfo"></div>
 
   <script>
@@ -173,19 +127,19 @@ function sendSampleImage() {
     let conversationId = null;
     let agentTypingTimeout = null;
     let lastTypingSent = 0;
+    let allowUpload = false;
+    let sdkReady = false;
+    let chatConnected = false;
 
     const messageInput = document.getElementById("messageInput");
     const attachmentInput = document.getElementById("attachmentInput");
     const typingIndicatorDiv = document.getElementById("typingIndicator");
+    const sendImageBtn = document.getElementById("sendImageBtn");
 
     const CLIENT_ID = 'd7b67318-06d9-4e6b-bcda-62598638577c';
     const REGION = 'cac1.pure.cloud';
     const DEPLOYMENT_ID = '4411676a-d200-478c-8adc-1312bb86bb84';
     const REDIRECT_URI = encodeURIComponent(window.location.origin + window.location.pathname);
-
-    const loginButton = document.getElementById('loginButton');
-    const statusDiv = document.getElementById('status');
-    const startBtn = document.getElementById('startBtn');
 
     function appendMessage(sender, html) {
       const container = document.getElementById("chatContainer");
@@ -198,25 +152,13 @@ function sendSampleImage() {
     }
 
     window.addEventListener('load', function () {
-      messageInput.addEventListener("input", () => {
-        if (!isConversationActive) return;
-        const now = Date.now();
-        if (now - lastTypingSent < 3000) return;
-        lastTypingSent = now;
-
-        Genesys("command", "MessagingService.sendTyping", {},
-          () => console.log("✅ Typing indicator sent to agent"),
-          (err) => console.error("❌ Failed to send typing indicator:", err)
-        );
-      });
-
       const hash = window.location.hash.substr(1);
       const params = new URLSearchParams(hash);
 
       if (params.has('access_token')) {
         const token = params.get('access_token');
-        statusDiv.textContent = 'Authenticated with Genesys';
-        statusDiv.className = 'connected';
+        document.getElementById('status').textContent = 'Authenticated with Genesys';
+        document.getElementById('status').className = 'connected';
         window.history.replaceState({}, document.title, window.location.pathname);
 
         (function (g, e, n, es) {
@@ -230,74 +172,15 @@ function sendSampleImage() {
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V63");
-              allowUpload = true; // <-- Enable upload here
-              startBtn.disabled = false;
+              console.log("✅ SDK ready V70");
+              sdkReady = true;
+              document.getElementById("startBtn").disabled = false;
             });
 
-            Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
-              const messages = event.data.messages || [];
-              messages.forEach((msg) => {
-                const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
-                if (attachments.length) {
-                  attachments.forEach(item => {
-                    const attachment = item.attachment || item;
-                    if (attachment?.id) {
-                      Genesys("command", "MessagingService.getFile", {
-                        fileId: attachment.id
-                      },
-                      (fileInfo) => {
-                        const name = fileInfo?.name || fileInfo?.filename || 'Unnamed file';
-                        const size = fileInfo?.size ? ` (${Math.round(fileInfo.size / 1024)} KB)` : '';
-                        if (fileInfo?.mimeType?.startsWith("image/")) {
-                          appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
-                        } else {
-                          appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank" download="${name}">${name}</a>${size}`);
-                        }
-                      },
-                      (err) => {
-                        console.error("❌ Failed to get file:", err);
-                        appendMessage("Agent", `📎 Attachment — failed to load.`);
-                      });
-                    }
-                  });
-                }
-
-                if (msg.type === "Text" && msg.text) {
-                  const sender = msg.direction === "Inbound" ? "You" : (msg.originatingEntity === "Human" ? "Agent" : msg.originatingEntity === "Bot" ? "Bot" : "System");
-                  appendMessage(sender, msg.text);
-                }
-              });
+            Genesys("subscribe", "MessagingService.stateChanged", ({ data }) => {
+              chatConnected = data.state === "Connected";
+              sendImageBtn.disabled = !chatConnected;
             });
-
-            Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
-              if (data?.typing?.type === "On") {
-                typingIndicatorDiv.style.display = "block";
-                clearTimeout(agentTypingTimeout);
-                agentTypingTimeout = setTimeout(() => {
-                  typingIndicatorDiv.style.display = "none";
-                }, data.typing.durationMs || 5000);
-              } else {
-                typingIndicatorDiv.style.display = "none";
-                clearTimeout(agentTypingTimeout);
-              }
-            });
-            Genesys("subscribe", "MessagingService.fileUploaded", function({ data }) {
-            console.log("File uploaded:", data);
-
-            // Send the uploaded file as a message
-            Genesys("command", "MessagingService.sendMessage", {
-        attachmentIds: [data.attachmentId]
-      },
-    function() {
-    console.log("File sent as a message.");
-  },
-  function(error) {
-    console.error("Error sending file as a message:", error);
-  });
-});
-
-            
           };
           document.head.appendChild(s);
         })(window, 'Genesys', 'https://apps.cac1.pure.cloud/genesys-bootstrap/genesys.min.js', {
@@ -309,125 +192,76 @@ function sendSampleImage() {
       }
     });
 
-    loginButton.addEventListener('click', function () {
-      const authUrl = `https://login.${REGION}/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
-      window.location.href = authUrl;
-    });
-
-    function resetAndConfigure(retry = false) {
-      Genesys("command", "MessagingService.clearConversation", {},
-        () => configureConversation(retry),
-        () => configureConversation(retry)
-      );
+    function resetAndConfigure() {
+      Genesys("command", "MessagingService.clearConversation", {}, configureConversation, configureConversation);
     }
 
-    function configureConversation(retry) {
-      Genesys("command", "MessagingService.configureConversation", {debug: true},
+    function configureConversation() {
+      Genesys("command", "MessagingService.configureConversation", {},
         (resp) => {
           if (resp?.isSessionActive) {
             isConversationActive = true;
             conversationId = resp.conversationId;
-            allowUpload = true; // <-- Safe to set here too
+            allowUpload = true;
             document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
           } else {
             startNewConversation();
           }
         },
-        (err) => {
-          console.error("❌ configureConversation error:", err);
-          if (!retry) resetAndConfigure(true);
-        });
+        (err) => console.error("❌ configureConversation error:", err));
     }
 
     function startNewConversation() {
-      Genesys("command", "MessagingService.joinConversation", {
-        channel: { type: "web" }
-      },
+      Genesys("command", "MessagingService.joinConversation", { channel: { type: "web" } },
         (resp) => {
           isConversationActive = true;
           conversationId = resp.conversationId;
-          allowUpload = true;  // <-- Enable uploads only after join
+          allowUpload = true;
           document.getElementById("conversationInfo").innerText = `🆔 Conversation ID: ${conversationId}`;
         },
-        (err) => {
-          console.error("❌ joinConversation error:", err);
-          alert("❌ Failed to start conversation.");
+        (err) => console.error("❌ joinConversation error:", err));
+    }
+
+    function sendSampleImage() {
+      if (!sdkReady || !chatConnected) {
+        console.warn("❌ Cannot upload — SDK not fully connected.");
+        appendMessage("System", "❌ Please start/resume conversation before uploading.");
+        return;
+      }
+
+      const url = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+
+      const onFileUploaded = function ({ data }) {
+        Genesys("command", "MessagingService.sendMessage", {
+          attachmentIds: [data.attachmentId]
         });
+        Genesys("unsubscribe", "MessagingService.fileUploaded", onFileUploaded);
+      };
+
+      Genesys("subscribe", "MessagingService.fileUploaded", onFileUploaded);
+
+      fetch(url).then(async (response) => {
+        const contentType = response.headers.get("content-type") || "image/jpeg";
+        const blob = await response.blob();
+        const file = new File([blob], "sample.jpg", { type: contentType });
+
+        Genesys("command", "MessagingService.requestUpload", {
+          file,
+          fileName: file.name,
+          mimeType: file.type
+        },
+        () => console.log("📥 Upload started"),
+        (err) => console.error("❌ Upload failed:", err));
+      });
     }
-let allowUpload = false; // Set this to true after conversation is fully joined
-
-function sendMessage() {
-  const input = document.getElementById("messageInput");
-  const fileInput = document.getElementById("attachmentInput");
-  const text = input.value.trim();
-  const file = fileInput.files[0];
-
-  if (!isConversationActive) {
-    console.warn("❌ Cannot send message — conversation is not active.");
-    return;
-  }
-
-  // ✅ Send text message
-  if (text) {
-    Genesys("command", "MessagingService.sendMessage", {
-      message: text
-    },
-    () => {
-      console.log("✅ Text message sent.");
-    },
-    (err) => {
-      console.error("❌ sendMessage error:", err);
-    });
-
-    input.value = "";
-  }
-
-  // ✅ Handle file upload
-  if (file) {
-    if (!allowUpload) {
-      console.warn("❌ Upload not allowed: SDK still initializing.");
-      appendMessage("System", `❌ Upload not allowed yet.`);
-      return;
-    }
-
-    // Basic file validation
-    if (!file.name || (!file.type && !file.name.match(/\.(jpg|jpeg|png|gif)$/i))) {
-      console.error("❌ Invalid file selected.");
-      appendMessage("System", "❌ Invalid file selected.");
-      return;
-    }
-
-    const mimeType = file.type || 'image/jpeg'; // Fallback MIME type
-
-    Genesys("command", "MessagingService.requestUpload", {
-      file,
-      fileName: file.name,
-      mimeType: mimeType
-    },
-    (res) => {
-      console.log("✅ File upload response:", res);
-      // Let SDK echo the uploaded message via `messagesReceived`
-    },
-    (err) => {
-      console.error("❌ File upload failed:", err);
-      appendMessage("System", `❌ Upload failed: ${file.name}`);
-    });
-
-    fileInput.value = "";
-  }
-}
-
-
 
     function endConversation() {
-      Genesys("command", "MessagingService.clearConversation", {},
-        () => {
-          isConversationActive = false;
-          conversationId = null;
-          document.getElementById("conversationInfo").innerText = "";
-        },
-        (err) => console.error("❌ endConversation error:", err)
-      );
+      Genesys("command", "MessagingService.clearConversation", {}, () => {
+        isConversationActive = false;
+        conversationId = null;
+        document.getElementById("conversationInfo").innerText = "";
+      },
+      (err) => console.error("❌ endConversation error:", err));
     }
   </script>
 </body>
