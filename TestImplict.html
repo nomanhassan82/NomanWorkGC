@@ -124,8 +124,14 @@
     <input id="messageInput" placeholder="Type a message..." />
     <input type="file" id="attachmentInput" accept="image/*" />
     <button onclick="sendMessage()">Send</button>
-<button onclick="sendSampleImage()">Send Sample Image</button>
+<button onclick="sendSampleImage()">Send Sample Image with Text</button>
+
 <script>
+let uploadedAttachments = [];
+
+// Only subscribe once
+let isSubscribed = false;
+
 function sendSampleImage() {
   if (!isConversationActive) {
     console.warn("❌ Cannot upload — conversation is not active.");
@@ -133,37 +139,67 @@ function sendSampleImage() {
     return;
   }
 
-  const url = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+  // Subscribe once to fileUploaded event
+  if (!isSubscribed) {
+    Genesys("subscribe", "MessagingService.fileUploaded", function (params) {
+      console.log("✅ File uploaded:", params);
 
-  let fileN = "";
+      // Store attachmentId and show thumbnail
+      uploadedAttachments.push(params.attachmentId);
+      showImageThumbnail(params.downloadUrl);
 
-// #3. First, subscribe to fileUploaded event to send it when you receive it. 
+      // Send text + image as one message
+      Genesys("command", "MessagingService.sendMessage", {
+        message: {
+          text: "Here's the image you requested!",
+          attachmentIds: uploadedAttachments
+        }
+      });
 
-Genesys("subscribe", "MessagingService.fileUploaded", function name(params) {
-   Genesys("command", "MessagingService.sendMessage"); // This command will automatically send any uploaded file (along with text message if any)
-});
+      // Clear for next message
+      uploadedAttachments = [];
+    });
+    isSubscribed = true;
+  }
 
-// #1 and #2 steps above
+  const imageUrls = [
+    "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
+    // Add more URLs here if needed
+  ];
 
-fetch(url).then(async (response) => {
-  const contentType = response.headers.get("content-type");
-  const blob = await response.blob();
-  fileN = new File([blob], "Name", {type: contentType});
-  var dt = new DataTransfer();
-  dt.items.add(fileN);
-  var file_list = dt.files;
-  Genesys("command", "MessagingService.requestUpload", {
-    file: file_list
+  imageUrls.forEach((url) => {
+    fetch(url)
+      .then(async (response) => {
+        const contentType = response.headers.get("content-type");
+        const blob = await response.blob();
+        const file = new File([blob], "image.jpg", { type: contentType });
+
+        const dt = new DataTransfer();
+        dt.items.add(file);
+
+        Genesys("command", "MessagingService.requestUpload", {
+          file: dt.files
+        });
+      })
+      .catch((error) => {
+        console.error("❌ Failed to fetch/upload image:", error);
+        appendMessage("System", "❌ Failed to upload the image.");
+      });
   });
-});
+}
+
+// Show image thumbnail in chat window
+function showImageThumbnail(url) {
+  const chatWindow = document.getElementById("chatWindow");
+  const img = document.createElement("img");
+  img.src = url;
+  img.alt = "Uploaded image";
+  img.style.maxWidth = "200px";
+  img.style.marginTop = "5px";
+  chatWindow.appendChild(img);
 }
 </script>
 
-  </div>
-
-  <div id="conversationInfo"></div>
-
-  <script>
     let isConversationActive = false;
     let conversationId = null;
     let agentTypingTimeout = null;
