@@ -135,32 +135,27 @@ function sendSampleImage() {
 
   const url = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
 
-  // Temporary one-time handler
-  const onFileUploaded = function ({ data }) {
-    Genesys("command", "MessagingService.sendMessage", {
-      attachmentIds: [data.attachmentId]
-    });
-    Genesys("unsubscribe", "MessagingService.fileUploaded", onFileUploaded);
-  };
+  let fileN = "";
 
-  Genesys("subscribe", "MessagingService.fileUploaded", onFileUploaded);
+// #3. First, subscribe to fileUploaded event to send it when you receive it. 
 
-  fetch(url).then(async (response) => {
-    const contentType = response.headers.get("content-type") || "image/jpeg";
-    const blob = await response.blob();
-    const file = new File([blob], "sample.jpg", { type: contentType });
+Genesys("subscribe", "MessagingService.fileUploaded", function name(params) {
+   Genesys("command", "MessagingService.sendMessage"); // This command will automatically send any uploaded file (along with text message if any)
+});
 
-    Genesys("command", "MessagingService.requestUpload", {
-      file,
-      fileName: file.name,
-      mimeType: file.type
-    },
-    () => console.log("📥 Upload started"),
-    (err) => {
-      console.error("❌ Upload failed:", err);
-      appendMessage("System", `❌ Upload failed: ${file.name}`);
-    });
+// #1 and #2 steps above
+
+fetch(url).then(async (response) => {
+  const contentType = response.headers.get("content-type");
+  const blob = await response.blob();
+  fileN = new File([blob], "Name", {type: contentType});
+  var dt = new DataTransfer();
+  dt.items.add(fileN);
+  var file_list = dt.files;
+  Genesys("command", "MessagingService.requestUpload", {
+    file: file_list
   });
+});
 }
 </script>
 
