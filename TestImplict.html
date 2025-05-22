@@ -124,20 +124,29 @@
     <input id="messageInput" placeholder="Type a message..." />
     <input type="file" id="attachmentInput" accept="image/*" />
     <button onclick="sendMessage()">Send</button>
-    <button onclick="sendSampleImage()">Send Sample Image</button>
-    <script>
+<button onclick="sendSampleImage()">Send Sample Image</button>
+<script>
 function sendSampleImage() {
+  if (!isConversationActive) {
+    console.warn("❌ Cannot upload — conversation is not active.");
+    appendMessage("System", "❌ Start the conversation before sending the image.");
+    return;
+  }
+
   const url = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
 
-  Genesys("subscribe", "MessagingService.fileUploaded", function once({ data }) {
+  // Temporary one-time handler
+  const onFileUploaded = function ({ data }) {
     Genesys("command", "MessagingService.sendMessage", {
       attachmentIds: [data.attachmentId]
     });
-    Genesys("unsubscribe", "MessagingService.fileUploaded", once); // prevent multiple sends
-  });
+    Genesys("unsubscribe", "MessagingService.fileUploaded", onFileUploaded);
+  };
+
+  Genesys("subscribe", "MessagingService.fileUploaded", onFileUploaded);
 
   fetch(url).then(async (response) => {
-    const contentType = response.headers.get("content-type");
+    const contentType = response.headers.get("content-type") || "image/jpeg";
     const blob = await response.blob();
     const file = new File([blob], "sample.jpg", { type: contentType });
 
@@ -145,10 +154,16 @@ function sendSampleImage() {
       file,
       fileName: file.name,
       mimeType: file.type
+    },
+    () => console.log("📥 Upload started"),
+    (err) => {
+      console.error("❌ Upload failed:", err);
+      appendMessage("System", `❌ Upload failed: ${file.name}`);
     });
   });
 }
 </script>
+
   </div>
 
   <div id="conversationInfo"></div>
@@ -215,7 +230,7 @@ function sendSampleImage() {
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK ready V61");
+              console.log("✅ SDK ready V63");
               allowUpload = true; // <-- Enable upload here
               startBtn.disabled = false;
             });
