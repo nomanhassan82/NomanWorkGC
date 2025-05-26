@@ -319,33 +319,36 @@
             });
 
             Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
-              const messages = event.data.messages || [];
-              messages.forEach((msg) => {
-                const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
-                attachments.forEach(item => {
-                  const attachment = item.attachment || item;
-                  if (attachment?.id) {
-                    Genesys("command", "MessagingService.getFile", {
-                      fileId: attachment.id
-                    }, (fileInfo) => {
-                      const name = fileInfo.name || "Attachment";
-                      if (fileInfo.mimeType?.startsWith("image/")) {
-                        appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
-                      } else {
-                        appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${name}</a>`);
-                      }
-                    });
-                  }
-                });
+  const messages = event.data.messages || [];
+  messages.forEach((msg) => {
+    const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
 
-                if (msg.type === "Text" && msg.text) {
-                  const sender = msg.direction === "Inbound" ? "You" :
-                    msg.originatingEntity === "Human" ? "Agent" :
-                    msg.originatingEntity === "Bot" ? "Bot" : "System";
-                  appendMessage(sender, msg.text);
-                }
-              });
-            });
+    attachments.forEach(item => {
+      const attachment = item.attachment || item;
+      const fileId = attachment.id || attachment.attachmentId;
+
+      if (fileId) {
+        Genesys("command", "MessagingService.getFile", {
+          fileId: fileId
+        }, (fileInfo) => {
+          const name = fileInfo.name || "Attachment";
+          if (fileInfo.mimeType?.startsWith("image/")) {
+            appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
+          } else {
+            appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${name}</a>`);
+          }
+        });
+      }
+    });
+
+    if (msg.type === "Text" && msg.text) {
+      const sender = msg.direction === "Inbound" ? "You" :
+        msg.originatingEntity === "Human" ? "Agent" :
+        msg.originatingEntity === "Bot" ? "Bot" : "System";
+      appendMessage(sender, msg.text);
+    }
+  });
+});
 
             Genesys("subscribe", "MessagingService.typingReceived", ({ data }) => {
               if (data?.typing?.type === "On") {
