@@ -328,16 +328,26 @@
       const fileId = attachment.id || attachment.attachmentId;
 
       if (fileId) {
-        Genesys("command", "MessagingService.getFile", {
-          fileId: fileId
-        }, (fileInfo) => {
-          const name = fileInfo.name || "Attachment";
-          if (fileInfo.mimeType?.startsWith("image/")) {
-            appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
-          } else {
-            appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${name}</a>`);
-          }
-        });
+Genesys("command", "MessagingService.getFile", {
+  fileId: fileId
+}, (fileInfo) => {
+  if (!fileInfo || !fileInfo.downloadUrl) {
+    console.warn("❌ Failed to retrieve file or downloadUrl is missing");
+    appendMessage("System", "❌ Failed to retrieve agent file.");
+    return;
+  }
+
+  const name = fileInfo.name || "Attachment";
+  if (fileInfo.mimeType?.startsWith("image/")) {
+    appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
+  } else {
+    appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${name}</a>`);
+  }
+}, (err) => {
+  console.error("❌ getFile error:", err);
+  appendMessage("System", "❌ Error downloading file.");
+});
+//
       }
     });
 
