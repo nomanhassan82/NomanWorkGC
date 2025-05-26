@@ -314,7 +314,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK Ready V200");
+              console.log("✅ SDK Ready V300");
               startBtn.disabled = false;
             });
 //__
@@ -323,16 +323,19 @@ Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
   messages.forEach((msg) => {
     const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
 //---
-   attachments.forEach(item => {
+attachments.forEach(item => {
   const attachment = item.attachment || item;
   const fileId = attachment.id || attachment.attachmentId;
   const url = attachment.url;
   const name = attachment.filename || "Attachment";
   const contentType = attachment.contentType || "";
 
-  // ✅ Use direct URL if present
+  // Enhanced image type check based on filename too
+  const isImage = contentType.startsWith("image/") ||
+                  /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+
   if (url) {
-    if (contentType.startsWith("image/")) {
+    if (isImage) {
       appendMessage("Agent", `<img src="${url}" alt="${name}" style="max-width:200px; border-radius:6px; margin:4px 0;">`);
     } else {
       appendMessage("Agent", `📎 <a href="${url}" target="_blank">${name}</a>`);
@@ -340,7 +343,6 @@ Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
     return;
   }
 
-  // ✅ Fallback to getFile if URL missing
   if (fileId) {
     Genesys("command", "MessagingService.getFile", {
       fileId: fileId
@@ -351,13 +353,14 @@ Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
         return;
       }
 
-      const name = fileInfo.name || "Attachment";
       const mimeType = fileInfo.mimeType || "";
+      const isImageFile = mimeType.startsWith("image/") ||
+                          /\.(jpg|jpeg|png|gif|webp)$/i.test(fileInfo.name || "");
 
-      if (mimeType.startsWith("image/")) {
-        appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px; border-radius:6px; margin:4px 0;">`);
+      if (isImageFile) {
+        appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${fileInfo.name}" style="max-width:200px; border-radius:6px; margin:4px 0;">`);
       } else {
-        appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${name}</a>`);
+        appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${fileInfo.name}</a>`);
       }
     }, (err) => {
       console.error("❌ getFile error:", err);
@@ -365,6 +368,7 @@ Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
     });
   }
 });
+
 
 //--
     if (msg.type === "Text" && msg.text) {
