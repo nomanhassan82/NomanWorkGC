@@ -314,7 +314,7 @@
           s.charset = "utf-8";
           s.onload = function () {
             Genesys("subscribe", "MessagingService.ready", () => {
-              console.log("✅ SDK Ready V100");
+              console.log("✅ SDK Ready V200");
               startBtn.disabled = false;
             });
 //__
@@ -322,47 +322,51 @@ Genesys("subscribe", "MessagingService.messagesReceived", (event) => {
   const messages = event.data.messages || [];
   messages.forEach((msg) => {
     const attachments = msg.attachments || (msg.content || []).filter(c => c.contentType === "Attachment");
+//---
+   attachments.forEach(item => {
+  const attachment = item.attachment || item;
+  const fileId = attachment.id || attachment.attachmentId;
+  const url = attachment.url;
+  const name = attachment.filename || "Attachment";
+  const contentType = attachment.contentType || "";
 
-    attachments.forEach(item => {
-      const attachment = item.attachment || item;
-      const fileId = attachment.id || attachment.attachmentId;
-      const url = attachment.url;
+  // ✅ Use direct URL if present
+  if (url) {
+    if (contentType.startsWith("image/")) {
+      appendMessage("Agent", `<img src="${url}" alt="${name}" style="max-width:200px; border-radius:6px; margin:4px 0;">`);
+    } else {
+      appendMessage("Agent", `📎 <a href="${url}" target="_blank">${name}</a>`);
+    }
+    return;
+  }
 
-      // ✅ Use direct URL if present
-      if (url) {
-        const name = attachment.filename || "Attachment";
-        if (attachment.contentType?.startsWith("image/")) {
-          appendMessage("Agent", `<img src="${url}" alt="${name}" style="max-width:200px">`);
-        } else {
-          appendMessage("Agent", `📎 <a href="${url}" target="_blank">${name}</a>`);
-        }
+  // ✅ Fallback to getFile if URL missing
+  if (fileId) {
+    Genesys("command", "MessagingService.getFile", {
+      fileId: fileId
+    }, (fileInfo) => {
+      if (!fileInfo || !fileInfo.downloadUrl) {
+        console.warn("❌ Failed to retrieve file or downloadUrl is missing");
+        appendMessage("System", "❌ Failed to retrieve agent file.");
         return;
       }
 
-      // ✅ Fallback to getFile
-      if (fileId) {
-        Genesys("command", "MessagingService.getFile", {
-          fileId: fileId
-        }, (fileInfo) => {
-          if (!fileInfo || !fileInfo.downloadUrl) {
-            console.warn("❌ Failed to retrieve file or downloadUrl is missing");
-            appendMessage("System", "❌ Failed to retrieve agent file.");
-            return;
-          }
+      const name = fileInfo.name || "Attachment";
+      const mimeType = fileInfo.mimeType || "";
 
-          const name = fileInfo.name || "Attachment";
-          if (fileInfo.mimeType?.startsWith("image/")) {
-            appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px">`);
-          } else {
-            appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${name}</a>`);
-          }
-        }, (err) => {
-          console.error("❌ getFile error:", err);
-          appendMessage("System", "❌ Error downloading file.");
-        });
+      if (mimeType.startsWith("image/")) {
+        appendMessage("Agent", `<img src="${fileInfo.downloadUrl}" alt="${name}" style="max-width:200px; border-radius:6px; margin:4px 0;">`);
+      } else {
+        appendMessage("Agent", `📎 <a href="${fileInfo.downloadUrl}" target="_blank">${name}</a>`);
       }
+    }, (err) => {
+      console.error("❌ getFile error:", err);
+      appendMessage("System", "❌ Error downloading file.");
     });
+  }
+});
 
+//--
     if (msg.type === "Text" && msg.text) {
       const sender = msg.direction === "Inbound" ? "You" :
         msg.originatingEntity === "Human" ? "Agent" :
