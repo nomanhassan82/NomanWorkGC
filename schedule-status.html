@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Genesys Schedule Group Status</title>
+  <title>Genesys Schedule Group Debug</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    #status { font-size: 1.5em; margin-top: 20px; }
+    #status, #debug { margin-top: 20px; }
+    pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
   </style>
 </head>
 <body>
-  <h2>Genesys Schedule Group Status Checker</h2>
+  <h2>Debug: Genesys Schedule Group Status</h2>
   <button id="checkStatusBtn">Check Group Schedule</button>
   <div id="status"></div>
+  <div id="debug"></div>
 
   <script>
     const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c'; // <-- Replace with your OAuth Client ID
@@ -25,15 +27,15 @@
 
       if (!token) {
         const redirectUri = window.location.origin + window.location.pathname;
-        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing`;
+        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing:scheduleGroup:view`;
         window.location = authUrl;
         return null;
       }
-
       return token;
     }
 
     function isScheduleOpen(schedule) {
+      if (!schedule || !Array.isArray(schedule.intervals)) return false;
       const now = new Date();
       const localNow = new Date(now.toLocaleString('en-US', { timeZone: schedule.timeZone }));
       const day = localNow.getDay();
@@ -55,14 +57,17 @@
           headers: { Authorization: `Bearer ${token}` }
         });
         const group = await groupRes.json();
+        document.getElementById('debug').innerHTML = `<pre>Schedule Group Response:\n${JSON.stringify(group, null, 2)}</pre>`;
 
-        const openScheduleId = group.openSchedule?.id;
+        const openScheduleId = group.openSchedule?.id || group.openScheduleId;
         if (!openScheduleId) throw new Error("Open schedule not found in group");
 
         const openScheduleRes = await fetch(`${apiUrl}/api/v2/architect/schedules/${openScheduleId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const openSchedule = await openScheduleRes.json();
+
+        document.getElementById('debug').innerHTML += `<pre>Open Schedule Response:\n${JSON.stringify(openSchedule, null, 2)}</pre>`;
 
         return isScheduleOpen(openSchedule) ? 'OPEN' : 'CLOSED';
       } catch (err) {
@@ -76,6 +81,7 @@
       if (!token) return;
 
       document.getElementById('status').innerText = 'Checking...';
+      document.getElementById('debug').innerHTML = '';
       const status = await getScheduleGroupStatus(token);
       document.getElementById('status').innerText = `Schedule group is currently: ${status}`;
     });
