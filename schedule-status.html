@@ -17,7 +17,7 @@
     const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c'; // <-- Replace with your Genesys OAuth Client ID
     const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
     const scheduleId = '4ac2f3d2-f0e7-4c60-ae01-7c364ed67531'; // <-- Replace with your Schedule ID
-    const region = 'cac1.pure.cloud'; // Use your region (e.g., cac1, us-east-1, etc.)
+    const region = 'cac1.pure.cloud'; // Use your region (e.g., cac1.pure.cloud, use1.pure.cloud, etc.)
     const apiUrl = `https://api.${region}`;
 
     // Step 1: Handle OAuth2 Implicit Grant
@@ -26,7 +26,7 @@
       let token = hash.get('access_token');
 
       if (!token) {
-        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${redirectUri}&scope=architect:schedule:view`;
         window.location = authUrl;
         return null;
       }
