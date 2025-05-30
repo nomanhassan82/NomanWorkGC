@@ -16,8 +16,8 @@
   <div id="debug"></div>
 
   <script>
-    const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c'; // <-- Replace with your OAuth Client ID
-    const scheduleGroupId = '410c2759-bdfd-455a-8798-124f0f01547a'; // <-- Replace with Schedule Group ID
+    const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c';
+    const scheduleGroupId = '410c2759-bdfd-455a-8798-124f0f01547a';
     const region = 'cac1.pure.cloud';
     const apiUrl = `https://api.${region}`;
 
@@ -26,7 +26,7 @@
       let token = hash.get('access_token');
       if (!token) {
         const redirectUri = window.location.origin + window.location.pathname;
-        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing`;
+        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing:scheduleGroup:view`;
         window.location = authUrl;
         return null;
       }
@@ -56,6 +56,21 @@
       return minutesNow >= startMinutes && minutesNow < endMinutes;
     }
 
+    async function isHolidayActive(group, token) {
+      for (const sched of group.holidaySchedules || []) {
+        const res = await fetch(`${apiUrl}/api/v2/architect/schedules/${sched.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const schedule = await res.json();
+        document.getElementById('debug').innerHTML += `<pre>Checked Holiday Schedule: ${schedule.name}\n${JSON.stringify(schedule, null, 2)}</pre>`;
+
+        if (isRruleOpen(schedule, group.timeZone)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     async function getScheduleGroupStatus(token) {
       try {
         const groupRes = await fetch(`${apiUrl}/api/v2/architect/schedulegroups/${scheduleGroupId}`, {
@@ -63,6 +78,10 @@
         });
         const group = await groupRes.json();
         document.getElementById('debug').innerHTML = `<pre>Schedule Group Response:\n${JSON.stringify(group, null, 2)}</pre>`;
+
+        if (await isHolidayActive(group, token)) {
+          return 'CLOSED (Holiday)';
+        }
 
         const openSchedules = group.openSchedules || [];
         if (!openSchedules.length) throw new Error("No open schedules found in group");
