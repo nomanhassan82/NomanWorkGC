@@ -24,7 +24,6 @@
     function getAccessToken() {
       const hash = new URLSearchParams(window.location.hash.slice(1));
       let token = hash.get('access_token');
-
       if (!token) {
         const redirectUri = window.location.origin + window.location.pathname;
         const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing`;
@@ -34,21 +33,25 @@
       return token;
     }
 
-    function isScheduleOpen(schedule) {
-      if (!schedule || !Array.isArray(schedule.intervals)) return false;
+    function isRruleOpen(schedule, groupTimeZone) {
       const now = new Date();
-      const localNow = new Date(now.toLocaleString('en-US', { timeZone: schedule.timeZone }));
-      const day = localNow.getDay();
-      const minutesNow = localNow.getHours() * 60 + localNow.getMinutes();
+      const nowInTZ = new Date(now.toLocaleString('en-US', { timeZone: groupTimeZone }));
+      const dayStr = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][nowInTZ.getDay()];
+      const minutesNow = nowInTZ.getHours() * 60 + nowInTZ.getMinutes();
 
-      return schedule.intervals.some(i => {
-        if (i.day !== day) return false;
-        const [startH, startM] = i.start.split(':').map(Number);
-        const [endH, endM] = i.end.split(':').map(Number);
-        const start = startH * 60 + startM;
-        const end = endH * 60 + endM;
-        return minutesNow >= start && minutesNow < end;
-      });
+      const rrule = schedule.rrule || '';
+      const byDayMatch = rrule.match(/BYDAY=([^;]+)/);
+      if (!byDayMatch) return false;
+      const activeDays = byDayMatch[1].split(',');
+      if (!activeDays.includes(dayStr)) return false;
+
+      const start = new Date(schedule.start).toLocaleTimeString('en-US', { hour12: false, timeZone: groupTimeZone }).split(":");
+      const end = new Date(schedule.end).toLocaleTimeString('en-US', { hour12: false, timeZone: groupTimeZone }).split(":");
+
+      const startMinutes = parseInt(start[0]) * 60 + parseInt(start[1]);
+      const endMinutes = parseInt(end[0]) * 60 + parseInt(end[1]);
+
+      return minutesNow >= startMinutes && minutesNow < endMinutes;
     }
 
     async function getScheduleGroupStatus(token) {
@@ -69,7 +72,7 @@
           const schedule = await res.json();
           document.getElementById('debug').innerHTML += `<pre>Checked Schedule: ${schedule.name}\n${JSON.stringify(schedule, null, 2)}</pre>`;
 
-          if (isScheduleOpen(schedule)) {
+          if (isRruleOpen(schedule, group.timeZone)) {
             return 'OPEN';
           }
         }
