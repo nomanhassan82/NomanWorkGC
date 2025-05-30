@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -17,7 +18,7 @@
 
   <script>
     const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c';
-    const scheduleGroupId = '410c2759-bdfd-455a-8798-124f0f01547a';
+    const scheduleGroupId = '71788b0f-4943-4fc0-8794-5edd781364f7';
     const region = 'cac1.pure.cloud';
     const apiUrl = `https://api.${region}`;
 
@@ -64,56 +65,59 @@
         const schedule = await res.json();
         document.getElementById('debug').innerHTML += `<pre>Checked Holiday Schedule: ${schedule.name}\n${JSON.stringify(schedule, null, 2)}</pre>`;
 
-        if (isRruleOpen(schedule, group.timeZone)) {
-          return true;
-        }
-      }
-      return false;
+```
+    if (isRruleOpen(schedule, group.timeZone)) {
+      return true;
     }
+  }
+  return false;
+}
 
-    async function getScheduleGroupStatus(token) {
-      try {
-        const groupRes = await fetch(`${apiUrl}/api/v2/architect/schedulegroups/${scheduleGroupId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const group = await groupRes.json();
-        document.getElementById('debug').innerHTML = `<pre>Schedule Group Response:\n${JSON.stringify(group, null, 2)}</pre>`;
-
-        if (await isHolidayActive(group, token)) {
-          return 'CLOSED (Holiday)';
-        }
-
-        const openSchedules = group.openSchedules || [];
-        if (!openSchedules.length) throw new Error("No open schedules found in group");
-
-        for (const sched of openSchedules) {
-          const res = await fetch(`${apiUrl}/api/v2/architect/schedules/${sched.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const schedule = await res.json();
-          document.getElementById('debug').innerHTML += `<pre>Checked Schedule: ${schedule.name}\n${JSON.stringify(schedule, null, 2)}</pre>`;
-
-          if (isRruleOpen(schedule, group.timeZone)) {
-            return 'OPEN';
-          }
-        }
-
-        return 'CLOSED';
-      } catch (err) {
-        console.error('Error:', err);
-        return 'ERROR';
-      }
-    }
-
-    document.getElementById('checkStatusBtn').addEventListener('click', async () => {
-      const token = getAccessToken();
-      if (!token) return;
-
-      document.getElementById('status').innerText = 'Checking...';
-      document.getElementById('debug').innerHTML = '';
-      const status = await getScheduleGroupStatus(token);
-      document.getElementById('status').innerText = `Schedule group is currently: ${status}`;
+async function getScheduleGroupStatus(token) {
+  try {
+    const groupRes = await fetch(`${apiUrl}/api/v2/architect/schedulegroups/${scheduleGroupId}`, {
+      headers: { Authorization: `Bearer ${token}` }
     });
+    const group = await groupRes.json();
+    document.getElementById('debug').innerHTML = `<pre>Schedule Group Response:\n${JSON.stringify(group, null, 2)}</pre>`;
+
+    if (await isHolidayActive(group, token)) {
+      return 'CLOSED (Holiday)';
+    }
+
+    const openSchedules = group.openSchedules || [];
+    if (!openSchedules.length) throw new Error("No open schedules found in group");
+
+    for (const sched of openSchedules) {
+      const res = await fetch(`${apiUrl}/api/v2/architect/schedules/${sched.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const schedule = await res.json();
+      document.getElementById('debug').innerHTML += `<pre>Checked Schedule: ${schedule.name}\n${JSON.stringify(schedule, null, 2)}</pre>`;
+
+      if (isRruleOpen(schedule, group.timeZone)) {
+        return 'OPEN';
+      }
+    }
+
+    return 'CLOSED';
+  } catch (err) {
+    console.error('Error:', err);
+    return 'ERROR';
+  }
+}
+
+document.getElementById('checkStatusBtn').addEventListener('click', async () => {
+  const token = getAccessToken();
+  if (!token) return;
+
+  document.getElementById('status').innerText = 'Checking...';
+  document.getElementById('debug').innerHTML = '';
+  const status = await getScheduleGroupStatus(token);
+  document.getElementById('status').innerText = `Schedule group is currently: ${status}`;
+});
+```
+
   </script>
 </body>
 </html>
