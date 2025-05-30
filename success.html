@@ -110,6 +110,7 @@
         <ul class="button-list">
             <li><button id="workplanBtn">Workplan</button></li>
             <li><button id="webmessage">Web Messager</button></li>
+            <li><button id="schedulesearch">Schedule Search</button></li>
         </ul>
     </div>
 
@@ -139,6 +140,11 @@
         document.getElementById('webmessage').addEventListener('click', function() {
             const token = new URLSearchParams(window.location.search).get('token');
             window.location.href = `webmessage.html?token=${token}`;
+        });
+
+        document.getElementById('schedulesearch').addEventListener('click', function() {
+            const token = new URLSearchParams(window.location.search).get('token');
+            window.location.href = `schedule-status.html?token=${token}`;
         });
     </script>
 </body>
