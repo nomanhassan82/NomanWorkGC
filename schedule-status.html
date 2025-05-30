@@ -26,7 +26,7 @@
       let token = hash.get('access_token');
 
       if (!token) {
-        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${redirectUri}&scope=architect:schedule:view`;
+        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${redirectUri}&scope=routing`;
         window.location = authUrl;
         return null;
       }
