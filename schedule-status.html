@@ -40,10 +40,12 @@
       const minutesNow = nowInTZ.getHours() * 60 + nowInTZ.getMinutes();
 
       const rrule = schedule.rrule || '';
+      const freqMatch = rrule.match(/FREQ=([^;]+)/);
+      const isDaily = freqMatch && freqMatch[1] === 'DAILY';
       const byDayMatch = rrule.match(/BYDAY=([^;]+)/);
-      if (!byDayMatch) return false;
-      const activeDays = byDayMatch[1].split(',');
-      if (!activeDays.includes(dayStr)) return false;
+      const activeDays = byDayMatch ? byDayMatch[1].split(',') : [];
+
+      if (!isDaily && (!byDayMatch || !activeDays.includes(dayStr))) return false;
 
       const start = new Date(schedule.start).toLocaleTimeString('en-US', { hour12: false, timeZone: groupTimeZone }).split(":");
       const end = new Date(schedule.end).toLocaleTimeString('en-US', { hour12: false, timeZone: groupTimeZone }).split(":");
