@@ -69,10 +69,10 @@
         const now = new Date();
         const nowInTZ = new Date(now.toLocaleString('en-US', { timeZone: group.timeZone }));
         if (nowInTZ >= start && nowInTZ < end) {
-          return true;
+          return `CLOSED (Holiday: ${schedule.name})`;
         }
       }
-      return false;
+      return null;
     }
 
     async function isClosedActive(group, token) {
@@ -83,9 +83,11 @@
         const schedule = await res.json();
         document.getElementById('debug').innerHTML += `<pre>Checked Closed Schedule: ${schedule.name}\n${JSON.stringify(schedule, null, 2)}</pre>`;
 
-        if (isRruleOpen(schedule, group.timeZone)) return true;
+        if (isRruleOpen(schedule, group.timeZone)) {
+          return `CLOSED (Hours: ${schedule.name})`;
+        }
       }
-      return false;
+      return null;
     }
 
     async function getScheduleGroupStatus(token) {
@@ -96,13 +98,11 @@
         const group = await groupRes.json();
         document.getElementById('debug').innerHTML = `<pre>Schedule Group Response:\n${JSON.stringify(group, null, 2)}</pre>`;
 
-        if (await isHolidayActive(group, token)) {
-          return 'CLOSED (Holiday)';
-        }
+        const holidayResult = await isHolidayActive(group, token);
+        if (holidayResult) return holidayResult;
 
-        if (await isClosedActive(group, token)) {
-          return 'CLOSED (Hours)';
-        }
+        const closedResult = await isClosedActive(group, token);
+        if (closedResult) return closedResult;
 
         const openSchedules = group.openSchedules || [];
         if (!openSchedules.length) throw new Error("No open schedules found in group");
@@ -115,7 +115,7 @@
           document.getElementById('debug').innerHTML += `<pre>Checked Schedule: ${schedule.name}\n${JSON.stringify(schedule, null, 2)}</pre>`;
 
           if (isRruleOpen(schedule, group.timeZone)) {
-            return 'OPEN';
+            return `OPEN (${schedule.name})`;
           }
         }
 
