@@ -27,7 +27,7 @@
 
       if (!token) {
         const redirectUri = window.location.origin + window.location.pathname;
-        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing:scheduleGroup:view`;
+        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing`;
         window.location = authUrl;
         return null;
       }
