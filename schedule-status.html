@@ -2,31 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Genesys Schedule Status</title>
+  <title>Genesys Schedule Group Status</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
     #status { font-size: 1.5em; margin-top: 20px; }
   </style>
 </head>
 <body>
-  <h2>Genesys Schedule Status Checker</h2>
-  <button id="checkStatusBtn">Check Schedule</button>
+  <h2>Genesys Schedule Group Status Checker</h2>
+  <button id="checkStatusBtn">Check Group Schedule</button>
   <div id="status"></div>
 
   <script>
-    const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c'; // <-- Replace with your Genesys OAuth Client ID
-    const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
-    const scheduleId = '52b25180-2c52-460d-8b29-94d46fa8a6ed'; // <-- Replace with your Schedule ID
-    const region = 'cac1.pure.cloud'; // Use your region (e.g., cac1.pure.cloud, use1.pure.cloud, etc.)
+    const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c'; // <-- Replace with your OAuth Client ID
+    const scheduleGroupId = '71788b0f-4943-4fc0-8794-5edd781364f7'; // <-- Replace with Schedule Group ID
+    const region = 'cac1.pure.cloud';
     const apiUrl = `https://api.${region}`;
 
-    // Step 1: Handle OAuth2 Implicit Grant
     function getAccessToken() {
       const hash = new URLSearchParams(window.location.hash.slice(1));
       let token = hash.get('access_token');
 
       if (!token) {
-        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${redirectUri}&scope=routing`;
+        const redirectUri = window.location.origin + window.location.pathname;
+        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing:scheduleGroup:view`;
         window.location = authUrl;
         return null;
       }
@@ -34,46 +33,51 @@
       return token;
     }
 
-    // Step 2: Determine schedule open/close status
-    function getScheduleStatus(schedule) {
-      const timeZone = schedule.timeZone;
+    function isScheduleOpen(schedule) {
       const now = new Date();
-      const nowInTZ = new Date(now.toLocaleString('en-US', { timeZone }));
-      const currentDay = nowInTZ.getDay(); // 0 = Sunday
-      const currentMinutes = nowInTZ.getHours() * 60 + nowInTZ.getMinutes();
+      const localNow = new Date(now.toLocaleString('en-US', { timeZone: schedule.timeZone }));
+      const day = localNow.getDay();
+      const minutesNow = localNow.getHours() * 60 + localNow.getMinutes();
 
-      const todayIntervals = schedule.intervals.filter(i => i.day === currentDay);
-
-      for (const interval of todayIntervals) {
-        const [startHour, startMinute] = interval.start.split(':').map(Number);
-        const [endHour, endMinute] = interval.end.split(':').map(Number);
-        const startMinutes = startHour * 60 + startMinute;
-        const endMinutes = endHour * 60 + endMinute;
-
-        if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
-          return 'OPEN';
-        }
-      }
-
-      return 'CLOSED';
+      return schedule.intervals.some(i => {
+        if (i.day !== day) return false;
+        const [startH, startM] = i.start.split(':').map(Number);
+        const [endH, endM] = i.end.split(':').map(Number);
+        const start = startH * 60 + startM;
+        const end = endH * 60 + endM;
+        return minutesNow >= start && minutesNow < end;
+      });
     }
 
-    document.getElementById('checkStatusBtn').addEventListener('click', () => {
+    async function getScheduleGroupStatus(token) {
+      try {
+        const groupRes = await fetch(`${apiUrl}/api/v2/architect/schedulegroups/${scheduleGroupId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const group = await groupRes.json();
+
+        const openScheduleId = group.openSchedule?.id;
+        if (!openScheduleId) throw new Error("Open schedule not found in group");
+
+        const openScheduleRes = await fetch(`${apiUrl}/api/v2/architect/schedules/${openScheduleId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const openSchedule = await openScheduleRes.json();
+
+        return isScheduleOpen(openSchedule) ? 'OPEN' : 'CLOSED';
+      } catch (err) {
+        console.error('Error:', err);
+        return 'ERROR';
+      }
+    }
+
+    document.getElementById('checkStatusBtn').addEventListener('click', async () => {
       const token = getAccessToken();
       if (!token) return;
 
-      fetch(`${apiUrl}/api/v2/architect/schedules/${scheduleId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(schedule => {
-          const status = getScheduleStatus(schedule);
-          document.getElementById('status').innerText = `Schedule "${schedule.name}" is currently: ${status}`;
-        })
-        .catch(err => {
-          console.error(err);
-          document.getElementById('status').innerText = 'Error fetching schedule.';
-        });
+      document.getElementById('status').innerText = 'Checking...';
+      const status = await getScheduleGroupStatus(token);
+      document.getElementById('status').innerText = `Schedule group is currently: ${status}`;
     });
   </script>
 </body>
