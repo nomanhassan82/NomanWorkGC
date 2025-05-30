@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Genesys Schedule Status</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #status { font-size: 1.5em; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Genesys Schedule Status Checker</h2>
+  <button id="checkStatusBtn">Check Schedule</button>
+  <div id="status"></div>
+
+  <script>
+    const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c'; // <-- Replace with your Genesys OAuth Client ID
+    const redirectUri = window.location.origin;
+    const scheduleId = '4ac2f3d2-f0e7-4c60-ae01-7c364ed67531'; // <-- Replace with your Schedule ID
+    const region = 'cac1'; // Use your region (e.g., cac1, us-east-1, etc.)
+    const apiUrl = `https://api.${region}.pure.cloud`;
+
+    // Step 1: Handle OAuth2 Implicit Grant
+    function getAccessToken() {
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      let token = hash.get('access_token');
+
+      if (!token) {
+        const authUrl = `https://login.${region}.pure.cloud/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=architect:schedule:view`;
+        window.location = authUrl;
+        return null;
+      }
+
+      return token;
+    }
+
+    // Step 2: Determine schedule open/close status
+    function getScheduleStatus(schedule) {
+      const timeZone = schedule.timeZone;
+      const now = new Date();
+      const nowInTZ = new Date(now.toLocaleString('en-US', { timeZone }));
+      const currentDay = nowInTZ.getDay(); // 0 = Sunday
+      const currentMinutes = nowInTZ.getHours() * 60 + nowInTZ.getMinutes();
+
+      const todayIntervals = schedule.intervals.filter(i => i.day === currentDay);
+
+      for (const interval of todayIntervals) {
+        const [startHour, startMinute] = interval.start.split(':').map(Number);
+        const [endHour, endMinute] = interval.end.split(':').map(Number);
+        const startMinutes = startHour * 60 + startMinute;
+        const endMinutes = endHour * 60 + endMinute;
+
+        if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+          return 'OPEN';
+        }
+      }
+
+      return 'CLOSED';
+    }
+
+    document.getElementById('checkStatusBtn').addEventListener('click', () => {
+      const token = getAccessToken();
+      if (!token) return;
+
+      fetch(`${apiUrl}/api/v2/architect/schedules/${scheduleId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(schedule => {
+          const status = getScheduleStatus(schedule);
+          document.getElementById('status').innerText = `Schedule "${schedule.name}" is currently: ${status}`;
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('status').innerText = 'Error fetching schedule.';
+        });
+    });
+  </script>
+</body>
+</html>
