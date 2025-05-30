@@ -1,50 +1,98 @@
- <html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Genesys Schedule Group Debug</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #status, #debug { margin-top: 20px; }
+    pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h2>Debug: Genesys Schedule Group Status</h2>
+  <button id="checkStatusBtn">Check Group Schedule</button>
+  <div id="status"></div>
+  <div id="debug"></div>
 
- <head>
-     <script src='https://sdk-cdn.mypurecloud.com/javascript/27.0.0/purecloud-platform-client-v2.min.js'></script>
- </head>
+  <script>
+    const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c'; // <-- Replace with your OAuth Client ID
+    const scheduleGroupId = '71788b0f-4943-4fc0-8794-5edd781364f7'; // <-- Replace with Schedule Group ID
+    const region = 'cac1.pure.cloud';
+    const apiUrl = `https://api.${region}`;
 
- <body>
-     <h4>Get Org Details</h4>
-     <p id="orgDetails"></p>
- </body>
+    function getAccessToken() {
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      let token = hash.get('access_token');
+      if (!token) {
+        const redirectUri = window.location.origin + window.location.pathname;
+        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing`;
+        window.location = authUrl;
+        return null;
+      }
+      return token;
+    }
 
- </html>
+    function isRruleOpen(schedule, groupTimeZone) {
+      const now = new Date();
+      const nowInTZ = new Date(now.toLocaleString('en-US', { timeZone: groupTimeZone }));
+      const dayStr = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][nowInTZ.getDay()];
+      const minutesNow = nowInTZ.getHours() * 60 + nowInTZ.getMinutes();
 
- <script>
+      const rrule = schedule.rrule || '';
+      const byDayMatch = rrule.match(/BYDAY=([^;]+)/);
+      if (!byDayMatch) return false;
+      const activeDays = byDayMatch[1].split(',');
+      if (!activeDays.includes(dayStr)) return false;
 
-     const clientId =f7015055-9e4a-457b-a753-429fbdc00877;
-     const redirectUri = window.location.href;
-     let environment = 'cac1.pure.cloud';
+      const start = new Date(schedule.start).toLocaleTimeString('en-US', { hour12: false, timeZone: groupTimeZone }).split(":");
+      const end = new Date(schedule.end).toLocaleTimeString('en-US', { hour12: false, timeZone: groupTimeZone }).split(":");
 
-     // Set Genesys Cloud objects
-     const platformClient = require('platformClient');
-     const client = platformClient.ApiClient.instance;
-     let organizationApi = new platformClient.OrganizationApi();
+      const startMinutes = parseInt(start[0]) * 60 + parseInt(start[1]);
+      const endMinutes = parseInt(end[0]) * 60 + parseInt(end[1]);
 
-     client.setEnvironment(environment);
+      return minutesNow >= startMinutes && minutesNow < endMinutes;
+    }
 
-     document.addEventListener('DOMContentLoaded', function () {
-         client.loginImplicitGrant(clientId, redirectUri)
-             .then(() => {
-                 organizationApi.getOrganizationsMe()
-                     .then((data) => {
-                         populateParagraph(data)
-                     })
-                     .catch((err) => {
-                         console.log('There was a failure calling getOrganizationsMe');
-                         console.error(err);
-                     });
-             })
-     });
+    async function getScheduleGroupStatus(token) {
+      try {
+        const groupRes = await fetch(`${apiUrl}/api/v2/architect/schedulegroups/${scheduleGroupId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const group = await groupRes.json();
+        document.getElementById('debug').innerHTML = `<pre>Schedule Group Response:\n${JSON.stringify(group, null, 2)}</pre>`;
 
-     function populateParagraph(data) {
-         for (key in data) {
-             console.log(key, data[key]);
-             let textnode = document.createTextNode(key + ' : ' + data[key]);
-             let br = document.createElement("br")
-             document.getElementById("orgDetails").appendChild(textnode);
-             document.getElementById("orgDetails").appendChild(br);
-         }
-     }
- </script>
+        const openSchedules = group.openSchedules || [];
+        if (!openSchedules.length) throw new Error("No open schedules found in group");
+
+        for (const sched of openSchedules) {
+          const res = await fetch(`${apiUrl}/api/v2/architect/schedules/${sched.id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const schedule = await res.json();
+          document.getElementById('debug').innerHTML += `<pre>Checked Schedule: ${schedule.name}\n${JSON.stringify(schedule, null, 2)}</pre>`;
+
+          if (isRruleOpen(schedule, group.timeZone)) {
+            return 'OPEN';
+          }
+        }
+
+        return 'CLOSED';
+      } catch (err) {
+        console.error('Error:', err);
+        return 'ERROR';
+      }
+    }
+
+    document.getElementById('checkStatusBtn').addEventListener('click', async () => {
+      const token = getAccessToken();
+      if (!token) return;
+
+      document.getElementById('status').innerText = 'Checking...';
+      document.getElementById('debug').innerHTML = '';
+      const status = await getScheduleGroupStatus(token);
+      document.getElementById('status').innerText = `Schedule group is currently: ${status}`;
+    });
+  </script>
+</body>
+</html>
