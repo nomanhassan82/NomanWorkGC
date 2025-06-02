@@ -16,8 +16,8 @@
   <div id="debug"></div>
 
   <script>
-    const clientId = 'd7b67318-06d9-4e6b-bcda-62598638577c';
-    const scheduleGroupId = '410c2759-bdfd-455a-8798-124f0f01547a';
+    const clientId = 'YOUR_CLIENT_ID';
+    const scheduleGroupId = 'YOUR_SCHEDULE_GROUP_ID';
     const region = 'cac1.pure.cloud';
     const apiUrl = `https://api.${region}`;
 
@@ -26,7 +26,7 @@
       let token = hash.get('access_token');
       if (!token) {
         const redirectUri = window.location.origin + window.location.pathname;
-        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing`;
+        const authUrl = `https://login.${region}/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=routing:scheduleGroup:view`;
         window.location = authUrl;
         return null;
       }
@@ -36,16 +36,14 @@
     function isRruleOpen(schedule, groupTimeZone) {
       const now = new Date();
       const nowInTZ = new Date(now.toLocaleString('en-US', { timeZone: groupTimeZone }));
-      const dayStr = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][nowInTZ.getDay()];
+      const day = nowInTZ.getDate();
       const minutesNow = nowInTZ.getHours() * 60 + nowInTZ.getMinutes();
 
       const rrule = schedule.rrule || '';
-      const freqMatch = rrule.match(/FREQ=([^;]+)/);
-      const isDaily = freqMatch && freqMatch[1] === 'DAILY';
-      const byDayMatch = rrule.match(/BYDAY=([^;]+)/);
-      const activeDays = byDayMatch ? byDayMatch[1].split(',') : [];
+      const dayMatch = rrule.match(/BYMONTHDAY=([\d]+)/);
+      const monthDay = dayMatch ? parseInt(dayMatch[1]) : null;
 
-      if (!isDaily && (!byDayMatch || !activeDays.includes(dayStr))) return false;
+      if (monthDay && day !== monthDay) return false;
 
       const start = new Date(schedule.start).toLocaleTimeString('en-US', { hour12: false, timeZone: groupTimeZone }).split(":");
       const end = new Date(schedule.end).toLocaleTimeString('en-US', { hour12: false, timeZone: groupTimeZone }).split(":");
