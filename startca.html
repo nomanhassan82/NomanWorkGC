@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genesys Cloud Web Messenger</title>
+  <title>Genesys Web Messenger</title>
 </head>
 <body>
   <h2>Genesys Web Messenger</h2>
 
-  <script type="text/javascript" charset="utf-8">
-    // Load Genesys Messenger
+  <script type="text/javascript">
     (function (g, e, n, es, ys) {
       g['_genesysJs'] = e;
       g[e] = g[e] || function () {
@@ -27,23 +25,19 @@
       deploymentId: 'f6d25d18-202a-4080-9b7b-a3347c2b94c8'
     });
 
-    // Set participant data after load
     window.addEventListener('DOMContentLoaded', () => {
-      // Example values – replace these with dynamic data if needed
-      const firstName = "John";
-      const phone = "1234567890";
-      const serviceSelection = "Billing";
-      const validationStatus = "Yes";
-      const customerCRMNumber = "C123456789";
+      Genesys("subscribe", "MessagingService.ready", function () {
+        Genesys("command", "Messenger.open");
+      });
 
       Genesys("command", "Database.set", {
         messaging: {
           customAttributes: {
-            ParticipantName: firstName,
-            ParticipantContactNumber: phone,
-            ParticipantSelection: serviceSelection,
-            ParticipantAuthenticated: validationStatus,
-            Participantcrm_ID: customerCRMNumber,
+            ParticipantName: "John",
+            ParticipantContactNumber: "1234567890",
+            ParticipantSelection: "Billing",
+            ParticipantAuthenticated: "Yes",
+            Participantcrm_ID: "C123456789",
             participantEnvironment: 'STG'
           }
         }
