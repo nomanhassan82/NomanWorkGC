@@ -7,11 +7,11 @@
 <body>
   <h2>Genesys Web Messenger</h2>
 
-  <script type="text/javascript">
+  <script>
     (function (g, e, n, es, ys) {
       g['_genesysJs'] = e;
       g[e] = g[e] || function () {
-        (g[e].q = g[e].q || []).push(arguments);
+        (g[e].q = g[e].q || []).push(arguments)
       };
       g[e].t = 1 * new Date();
       g[e].c = es;
@@ -28,19 +28,6 @@
     window.addEventListener('DOMContentLoaded', () => {
       Genesys("subscribe", "MessagingService.ready", function () {
         Genesys("command", "Messenger.open");
-      });
-
-      Genesys("command", "Database.set", {
-        messaging: {
-          customAttributes: {
-            ParticipantName: "John",
-            ParticipantContactNumber: "1234567890",
-            ParticipantSelection: "Billing",
-            ParticipantAuthenticated: "Yes",
-            Participantcrm_ID: "C123456789",
-            participantEnvironment: 'STG'
-          }
-        }
       });
     });
   </script>
